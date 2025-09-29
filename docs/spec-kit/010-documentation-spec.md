@@ -593,6 +593,165 @@ Include version history table at end of document:
 - **Issue Tracking**: Track doc issues in GitHub
 - **User Feedback**: Incorporate user feedback
 
+### Git Workflow for Documentation
+
+**CRITICAL: After completing any major milestone, push changes to git and verify CI/CD status.**
+
+#### When to Commit and Push
+
+Push documentation changes in these scenarios:
+
+1. **Major Milestone Completion**:
+   - Complete module implementation
+   - Feature completion with passing tests
+   - Architecture changes
+   - API modifications
+   - Significant refactoring
+
+2. **Spec-Kit Updates**:
+   - Requirements changes
+   - Architecture decision records (ADRs)
+   - API specification updates
+   - Testing strategy updates
+   - Deployment procedure changes
+
+3. **Documentation Updates**:
+   - User guide additions
+   - API documentation updates
+   - Developer guide changes
+   - Example code additions
+
+#### Git Commit Workflow
+
+```bash
+# 1. Stage all changes
+git add .
+
+# 2. Commit with descriptive message
+git commit -m "feat: implement PTY spawning and management
+
+- Add portable-pty integration
+- Implement async I/O streaming
+- Add process lifecycle management
+- Add 7 integration tests (6 passing)
+- Update spec-kit with PTY architecture"
+
+# 3. Push to remote
+git push origin main  # or current branch
+```
+
+#### GitHub Actions Validation
+
+**MANDATORY: After pushing, verify CI/CD status:**
+
+1. **Check Workflow Status**:
+   - Navigate to repository's Actions tab
+   - Verify all workflows pass (green checkmarks)
+   - Review any warnings in workflow logs
+
+2. **Common CI/CD Checks**:
+   - ✅ Build: `cargo build --release`
+   - ✅ Tests: `cargo test --all`
+   - ✅ Linting: `cargo clippy -- -D warnings`
+   - ✅ Formatting: `cargo fmt -- --check`
+   - ✅ Documentation: `cargo doc --no-deps`
+   - ✅ Frontend: `pnpm build && pnpm test`
+
+3. **Fix Issues if Applicable**:
+   ```bash
+   # If tests fail
+   cargo test  # Fix failing tests
+   git commit -am "fix: resolve failing tests"
+   git push
+
+   # If formatting fails
+   cargo fmt
+   git commit -am "style: apply rustfmt"
+   git push
+
+   # If linting fails
+   cargo clippy --fix --allow-dirty
+   git commit -am "fix: resolve clippy warnings"
+   git push
+
+   # If build fails
+   # Fix compilation errors
+   git commit -am "fix: resolve compilation errors"
+   git push
+   ```
+
+4. **Verify Success**:
+   - All GitHub Actions checks show green checkmarks
+   - No workflow warnings requiring attention
+   - Documentation builds successfully
+   - Tests pass in CI environment
+
+#### Commit Message Guidelines
+
+Use conventional commit format:
+
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+```
+
+**Types:**
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation changes
+- `style`: Code style changes (formatting)
+- `refactor`: Code refactoring
+- `test`: Test additions or changes
+- `perf`: Performance improvements
+- `build`: Build system changes
+- `ci`: CI/CD configuration changes
+- `chore`: Maintenance tasks
+
+**Examples:**
+```bash
+feat(pty): implement PTY spawning and lifecycle management
+fix(websocket): resolve connection timeout issues
+docs(spec-kit): update architecture with ADR-000
+test(pty): add integration tests for I/O streaming
+refactor(session): simplify session manager API
+perf(protocol): optimize message serialization
+```
+
+#### Pre-Push Checklist
+
+Before pushing major changes, verify:
+
+- [ ] All tests pass locally: `cargo test --all`
+- [ ] Code is formatted: `cargo fmt --check`
+- [ ] No linting errors: `cargo clippy -- -D warnings`
+- [ ] Documentation builds: `cargo doc --no-deps`
+- [ ] Frontend builds: `pnpm build` (if applicable)
+- [ ] Commit messages follow convention
+- [ ] Spec-kit updated if architecture changed
+- [ ] CHANGELOG.md updated (for releases)
+
+#### Post-Push Validation
+
+After pushing, **ALWAYS**:
+
+1. Check GitHub Actions status within 5 minutes
+2. Review workflow logs for warnings
+3. Fix any CI/CD issues immediately
+4. Verify deployment status if applicable
+5. Update issue/PR status
+
+#### Branch Protection
+
+Production branches enforce:
+- ✅ Required status checks must pass
+- ✅ Require branches to be up to date
+- ✅ Require code review approval
+- ✅ No force pushes allowed
+- ✅ No deletions allowed
+
 ### Deprecation Policy
 
 When deprecating features:

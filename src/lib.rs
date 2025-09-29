@@ -3,6 +3,7 @@
 
 pub mod cli;
 pub mod config;
+pub mod error;
 pub mod execution;
 pub mod filesystem;
 pub mod monitoring;
@@ -11,3 +12,6 @@ pub mod pty;
 pub mod security;
 pub mod server;
 pub mod session;
+
+// Re-export commonly used types
+pub use error::{Error, Result};

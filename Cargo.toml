@@ -12,6 +12,7 @@ repository = "https://github.com/liamhelmer/web-terminal"
 
 [dependencies]
 # Web framework (per spec-kit/003-backend-spec.md)
+actix = "0.13"
 actix-web = "4"
 actix-web-actors = "4"
 actix-files = "0.6"
@@ -67,7 +68,12 @@ rustls-pemfile = { version = "2", optional = true }
 
 # Byte buffer management (per spec-kit/003-backend-spec.md - zero-copy optimization)
 bytes = "1"
+
+# PTY support (per spec-kit/003-backend-spec.md section 3)
 portable-pty = "0.9.0"
+
+# Humantime for duration serialization
+humantime-serde = "1"
 
 [build-dependencies]
 # Build script dependencies

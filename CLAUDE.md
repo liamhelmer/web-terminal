@@ -159,6 +159,59 @@ If the spec-kit needs updates:
 - **Clean Architecture**: Separate concerns
 - **Documentation**: Keep updated
 
+## 🔄 Git Workflow & CI/CD Validation
+
+### Major Milestone Workflow
+
+**AFTER completing any major milestone (module implementation, feature completion, significant refactoring), ALWAYS:**
+
+1. **Commit and push changes to git:**
+   ```bash
+   git add .
+   git commit -m "feat: [description of milestone]"
+   git push
+   ```
+
+2. **Monitor GitHub Actions:**
+   - Check workflow status at GitHub Actions page
+   - Wait for all checks to complete (build, test, lint)
+   - Review any warnings or errors
+
+3. **Fix CI/CD issues if applicable:**
+   - If tests fail: Fix failing tests and re-push
+   - If build fails: Fix compilation errors and re-push
+   - If linting fails: Run `cargo fmt` and `cargo clippy --fix` and re-push
+   - If any other issues: Address them and re-push
+
+4. **Verify success:**
+   - Ensure all GitHub Actions checks pass (green checkmarks)
+   - Review workflow logs for any warnings
+   - Confirm deployment status if applicable
+
+**Major Milestones Include:**
+- Complete module implementation (e.g., PTY module)
+- Feature completion with tests passing
+- Architecture changes or refactoring
+- API changes or new endpoints
+- Documentation updates to spec-kit
+- Performance improvements
+- Security fixes
+
+**Git Commit Message Format:**
+- `feat: Add PTY spawning and management`
+- `fix: Resolve compilation errors in io_handler`
+- `refactor: Simplify session manager architecture`
+- `docs: Update spec-kit with PTY requirements`
+- `test: Add integration tests for PTY lifecycle`
+- `perf: Optimize WebSocket message handling`
+- `security: Fix authentication bypass vulnerability`
+
+**DO NOT commit:**
+- Work-in-progress code that doesn't compile
+- Code with failing tests (unless explicitly documenting known issues)
+- Uncommitted changes mixed with unrelated work
+- Files with merge conflicts
+
 ## 🚀 Available Agents (54 Total)
 
 ### Core Development
