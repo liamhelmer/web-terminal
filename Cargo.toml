@@ -42,8 +42,8 @@ clap_complete = "4"
 num_cpus = "1"
 
 # Configuration (per spec-kit/003-backend-spec.md)
-config = "0.14"
-toml = "0.8"
+config = "0.15"
+toml = "0.9"
 
 # Error handling (per spec-kit/003-backend-spec.md)
 anyhow = "1"
@@ -53,7 +53,7 @@ thiserror = "1"
 shell-words = "1"
 
 # Metrics (per spec-kit/003-backend-spec.md - Prometheus integration)
-prometheus = "0.13"
+prometheus = "0.14"
 
 # Date/time
 chrono = { version = "0.4", features = ["serde"] }
@@ -75,9 +75,9 @@ chrono = "0.4"
 
 [dev-dependencies]
 # Testing (per spec-kit/008-testing-spec.md)
-mockall = "0.12"       # Mocking for tests
+mockall = "0.13"       # Mocking for tests
 tempfile = "3"         # Temporary directories for tests
-criterion = "0.5"      # Benchmarking
+criterion = "0.7"      # Benchmarking
 assert_cmd = "2"       # CLI testing
 predicates = "3"       # Assertions for tests
 
