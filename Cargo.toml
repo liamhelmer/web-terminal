@@ -30,7 +30,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 tracing-actix-web = "0.7"
 
 # Concurrency (per spec-kit/003-backend-spec.md - Session management with DashMap)
-dashmap = "5"
+dashmap = "6"
 
 # Authentication (per spec-kit/003-backend-spec.md)
 jsonwebtoken = "9"
