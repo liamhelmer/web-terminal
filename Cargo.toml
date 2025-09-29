@@ -20,6 +20,7 @@ actix-cors = "0.7"
 
 # Async runtime (per spec-kit/003-backend-spec.md)
 tokio = { version = "1", features = ["full", "tracing"] }
+futures-util = "0.3"
 
 # Serialization (per spec-kit/003-backend-spec.md)
 serde = { version = "1", features = ["derive"] }

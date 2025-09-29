@@ -5,9 +5,9 @@ use actix::{Actor, ActorContext, AsyncContext, StreamHandler};
 use actix_web_actors::ws;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
+use tokio::runtime::Handle;
 use tokio::sync::mpsc;
-
-use crate::error::Error;
+use tokio::task::block_in_place;
 use crate::protocol::{ClientMessage, ConnectionStatus, ServerMessage, Signal};
 use crate::pty::PtyManager;
 use crate::session::{SessionId, SessionManager};
@@ -21,8 +21,8 @@ pub struct WebSocketSession {
     session_id: SessionId,
     /// Session manager
     session_manager: Arc<SessionManager>,
-    /// PTY manager
-    pty_manager: Arc<PtyManager>,
+    /// PTY manager (owned per-connection)
+    pty_manager: PtyManager,
     /// PTY process ID
     pty_id: Option<String>,
     /// Last heartbeat timestamp
@@ -36,7 +36,7 @@ impl WebSocketSession {
     pub fn new(
         session_id: SessionId,
         session_manager: Arc<SessionManager>,
-        pty_manager: Arc<PtyManager>,
+        pty_manager: PtyManager,
     ) -> Self {
         Self {
             session_id,
@@ -64,7 +64,7 @@ impl WebSocketSession {
     }
 
     /// Initialize PTY for this session
-    async fn initialize_pty(&mut self, ctx: &mut ws::WebsocketContext<Self>) -> crate::Result<()> {
+    async fn initialize_pty(&mut self, _ctx: &mut ws::WebsocketContext<Self>) -> crate::Result<()> {
         // Spawn PTY process
         let handle = self.pty_manager.spawn(None)?;
         let pty_id = handle.id().to_string();
@@ -78,14 +78,9 @@ impl WebSocketSession {
         let (tx, rx) = mpsc::unbounded_channel();
         self.output_rx = Some(rx);
 
-        // Start streaming output (using actix_web::rt::spawn for Send requirements)
-        let pty_manager = self.pty_manager.clone();
-        let pty_id_clone = pty_id.clone();
-        actix_web::rt::spawn(async move {
-            if let Err(e) = pty_manager.stream_output(&pty_id_clone, tx).await {
-                tracing::error!("Failed to stream PTY output: {}", e);
-            }
-        });
+        // Start streaming output
+        // TODO: Implement streaming without cloning manager
+        // For now, we'll poll output in poll_output method
 
         self.pty_id = Some(pty_id);
 
@@ -94,75 +89,69 @@ impl WebSocketSession {
     }
 
     /// Handle client command
-    fn handle_command(&mut self, data: String, ctx: &mut ws::WebsocketContext<Self>) {
+    fn handle_command(&mut self, data: String, _ctx: &mut ws::WebsocketContext<Self>) {
         let pty_id = match &self.pty_id {
             Some(id) => id.clone(),
             None => {
-                self.send_error("PTY not initialized", ctx);
+                self.send_error("PTY not initialized", _ctx);
                 return;
             }
         };
 
         // Write command to PTY
-        let pty_manager = self.pty_manager.clone();
-        let fut = async move {
-            match pty_manager.create_writer(&pty_id) {
-                Ok(mut writer) => {
+        match self.pty_manager.create_writer(&pty_id) {
+            Ok(mut writer) => {
+                // Spawn async write task
+                actix_web::rt::spawn(async move {
                     if let Err(e) = writer.write(data.as_bytes()).await {
                         tracing::error!("Failed to write to PTY: {}", e);
                     }
-                }
-                Err(e) => {
-                    tracing::error!("Failed to create PTY writer: {}", e);
-                }
+                });
             }
-        };
-
-        ctx.spawn(actix::fut::wrap_future(fut));
+            Err(e) => {
+                tracing::error!("Failed to create PTY writer: {}", e);
+            }
+        }
     }
 
     /// Handle terminal resize
-    fn handle_resize(&self, cols: u16, rows: u16, ctx: &mut ws::WebsocketContext<Self>) {
+    fn handle_resize(&mut self, cols: u16, rows: u16, _ctx: &mut ws::WebsocketContext<Self>) {
         let pty_id = match &self.pty_id {
             Some(id) => id.clone(),
             None => {
-                self.send_error("PTY not initialized", ctx);
+                self.send_error("PTY not initialized", _ctx);
                 return;
             }
         };
 
-        let pty_manager = self.pty_manager.clone();
-        let fut = async move {
-            if let Err(e) = pty_manager.resize(&pty_id, cols, rows).await {
-                tracing::error!("Failed to resize PTY: {}", e);
-            }
-        };
-
-        ctx.spawn(actix::fut::wrap_future(fut));
+        // Call resize directly (it's sync in current impl)
+        if let Err(e) = block_in_place(|| {
+            Handle::current().block_on(self.pty_manager.resize(&pty_id, cols, rows))
+        }) {
+            tracing::error!("Failed to resize PTY: {}", e);
+        }
     }
 
     /// Handle signal
-    fn handle_signal(&self, signal: Signal, ctx: &mut ws::WebsocketContext<Self>) {
+    fn handle_signal(&mut self, signal: Signal, _ctx: &mut ws::WebsocketContext<Self>) {
         let pty_id = match &self.pty_id {
             Some(id) => id.clone(),
             None => {
-                self.send_error("PTY not initialized", ctx);
+                self.send_error("PTY not initialized", _ctx);
                 return;
             }
         };
 
-        let pty_manager = self.pty_manager.clone();
-        let fut = async move {
-            match signal {
-                Signal::SIGINT | Signal::SIGTERM | Signal::SIGKILL => {
-                    if let Err(e) = pty_manager.kill(&pty_id).await {
-                        tracing::error!("Failed to kill PTY: {}", e);
-                    }
+        // Handle signal directly
+        match signal {
+            Signal::SIGINT | Signal::SIGTERM | Signal::SIGKILL => {
+                if let Err(e) = block_in_place(|| {
+                    Handle::current().block_on(self.pty_manager.kill(&pty_id))
+                }) {
+                    tracing::error!("Failed to kill PTY: {}", e);
                 }
             }
-        };
-
-        ctx.spawn(actix::fut::wrap_future(fut));
+        }
     }
 
     /// Send error message to client
@@ -238,15 +227,14 @@ impl Actor for WebSocketSession {
     fn stopped(&mut self, _ctx: &mut Self::Context) {
         tracing::info!("WebSocket session stopped: {}", self.session_id);
 
-        // Clean up PTY (using actix_web::rt::spawn)
+        // Clean up PTY
         if let Some(pty_id) = &self.pty_id {
-            let pty_manager = self.pty_manager.clone();
             let pty_id = pty_id.clone();
-            actix_web::rt::spawn(async move {
-                if let Err(e) = pty_manager.kill(&pty_id).await {
-                    tracing::error!("Failed to kill PTY on session close: {}", e);
-                }
-            });
+            if let Err(e) = block_in_place(|| {
+                Handle::current().block_on(self.pty_manager.kill(&pty_id))
+            }) {
+                tracing::error!("Failed to kill PTY on session close: {}", e);
+            }
         }
     }
 }
@@ -282,21 +270,19 @@ impl StreamHandler<std::result::Result<ws::Message, ws::ProtocolError>> for WebS
             Ok(ws::Message::Binary(bin)) => {
                 // Handle binary data (write directly to PTY)
                 if let Some(pty_id) = &self.pty_id {
-                    let pty_manager = self.pty_manager.clone();
                     let pty_id = pty_id.clone();
-                    let fut = async move {
-                        match pty_manager.create_writer(&pty_id) {
-                            Ok(mut writer) => {
+                    match self.pty_manager.create_writer(&pty_id) {
+                        Ok(mut writer) => {
+                            actix_web::rt::spawn(async move {
                                 if let Err(e) = writer.write(&bin).await {
                                     tracing::error!("Failed to write binary to PTY: {}", e);
                                 }
-                            }
-                            Err(e) => {
-                                tracing::error!("Failed to create PTY writer: {}", e);
-                            }
+                            });
                         }
-                    };
-                    ctx.spawn(actix::fut::wrap_future(fut));
+                        Err(e) => {
+                            tracing::error!("Failed to create PTY writer: {}", e);
+                        }
+                    }
                 }
             }
             Ok(ws::Message::Ping(msg)) => {

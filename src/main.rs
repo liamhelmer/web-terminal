@@ -1,18 +1,8 @@
 // Web-Terminal: Browser-based terminal emulator
 // Per spec-kit/005-cli-spec.md
 
-mod cli;
-mod config;
-mod server;
-mod session;
-mod execution;
-mod filesystem;
-mod security;
-mod protocol;
-mod monitoring;
-
 use clap::Parser;
-use cli::Cli;
+use web_terminal::cli::{self, Cli};
 
 #[tokio::main]
 async fn main() {
