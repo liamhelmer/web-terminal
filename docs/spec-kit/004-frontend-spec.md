@@ -24,12 +24,12 @@
 
 | Technology | Version | Purpose |
 |-----------|---------|---------|
-| TypeScript | 5.x | Type-safe JavaScript |
-| xterm.js | 5.x | Terminal emulator |
-| Vite | 5.x | Build tool and dev server |
+| TypeScript | 5.9.x | Type-safe JavaScript |
+| xterm.js | 5.3.x | Terminal emulator |
+| Vite | 7.1.x | Build tool and dev server |
 | pnpm | 8.x | Package manager |
-| Vitest | 1.x | Unit testing |
-| Playwright | 1.x | E2E testing |
+| Vitest | 3.2.x | Unit testing |
+| Playwright | 1.55.x | E2E testing |
 
 ---
 

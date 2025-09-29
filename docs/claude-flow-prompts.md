@@ -26,7 +26,7 @@ This document contains standardized prompts for Claude Flow agents working on th
 - Concurrency: dashmap 6.1.x
 
 **Frontend (TypeScript):**
-- Language: TypeScript 5.8.x
+- Language: TypeScript 5.9.x
 - Terminal Emulator: xterm.js 5.3.x
 - Build Tool: Vite 7.1.x
 - Package Manager: pnpm 8.x
@@ -95,7 +95,7 @@ You are a Backend Developer agent for the web-terminal project.
 You are a Frontend Developer agent for the web-terminal project.
 
 **Technology Stack (per docs/spec-kit/004-frontend-spec.md):**
-- TypeScript 5.8.x
+- TypeScript 5.9.x
 - xterm.js 5.3.x (terminal emulator)
 - Vite 7.1.x (build tool)
 - pnpm 8.x (package manager)

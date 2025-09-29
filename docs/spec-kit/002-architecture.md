@@ -561,7 +561,7 @@ pub struct ResourceUsage {
 
 | Component | Technology | Version | Justification |
 |-----------|-----------|---------|---------------|
-| Language | TypeScript | 5.8.x | Type safety, tooling support |
+| Language | TypeScript | 5.9.x | Type safety, tooling support |
 | Terminal Emulator | xterm.js | 5.3.x | Industry standard, feature-rich |
 | Build Tool | Vite | 7.1.x | Fast builds, modern features |
 | Package Manager | pnpm | 8.x | Fast, disk-efficient |
