@@ -1,0 +1,13 @@
+Create a spec-kit (https://github.com/github/spec-kit) for a new rust/wasm/javascript project called "web-terminal", and a set of prompts for claude-flow to create
+  the project, step by step. Think hard about all the details and steps that will be necessary. The project, when run from the cli, will present a single port for
+  backend, api and websockets, and will use only relative paths in the code to make it easier to proxy. The backend will be rust. it will create a new terminal with a
+  command specified on the commandline or via environment variables. escaping for arguments on the cli should support arguments that have whitespaces or special
+  characters in them. The frontend will be javascript/wasm, and will use xterm.js. it will support all ansi escape codes, colors, and other extended terminal features
+  will be enabled by default. The frontend will support creating new terminals that will be spawned in the backend, using a /bin/bash shell by default, or and optional
+  commandline argument. Each terminal should have a scrollback of 10000 lines minimum, and should default to 120x40 in size. The command in the commandline should run
+  immediately in the backend on launch, and shouldn't wait for a client to connect to the websocket and create a terminal. When the initial command exits, the backend
+  should exit, and all processes spawned by the backend should also exit. The exit code from the spawned process should be the exit code for the process, and any
+  standard error from the process should be captured and logged. It should have thorough documentation on usage, and all cli arguments should be tested and validated
+  as working as documented. All features mentioned require tests end-to-end tests using playwright, including: creating new terminals, switching between different
+  terminals, input/output frontend to the backend, colour, ansi escape codes, terminal resizing, the api for configuration and sessions, and the ability to proxy the
+  terminal from a different web url. No hard-coded ports or absolute paths should be included anywhere in the backend or frontend.

@@ -1,0 +1,32 @@
+# Web Terminal Configuration Example
+# Copy to config.toml and adjust as needed
+
+[server]
+# CRITICAL: Single-port architecture per spec-kit/002-architecture.md
+# All services (HTTP, WebSocket, static files) run on ONE port
+host = "127.0.0.1"
+port = 8080
+
+[security]
+# Session timeout in seconds
+session_timeout = 3600
+# JWT secret (MUST be overridden in production)
+jwt_secret = "CHANGE_THIS_IN_PRODUCTION"
+
+[execution]
+# Maximum concurrent sessions
+max_sessions = 100
+# Command timeout in seconds
+command_timeout = 30
+
+[filesystem]
+# Base directory for sandboxed operations
+sandbox_base = "/tmp/web-terminal"
+# Maximum file size in bytes (10MB)
+max_file_size = 10485760
+
+[logging]
+# Log level: trace, debug, info, warn, error
+level = "info"
+# Log format: json, pretty
+format = "pretty"
