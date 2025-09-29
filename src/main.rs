@@ -1,6 +1,7 @@
-// Web Terminal - Main Entry Point
-// Per spec-kit/003-backend-spec.md
+// Web-Terminal: Browser-based terminal emulator
+// Per spec-kit/005-cli-spec.md
 
+mod cli;
 mod config;
 mod server;
 mod session;
@@ -10,23 +11,38 @@ mod security;
 mod protocol;
 mod monitoring;
 
-#[actix_web::main]
-async fn main() -> std::io::Result<()> {
-    // Initialize tracing/logging
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info"))
-        )
-        .init();
+use clap::Parser;
+use cli::Cli;
 
-    tracing::info!("Web Terminal starting...");
+#[tokio::main]
+async fn main() {
+    // Parse command line arguments
+    let cli = Cli::parse();
 
-    // TODO: Load configuration
-    // TODO: Initialize server
-    // TODO: Start HTTP/WebSocket server on single port
+    // Execute command
+    if let Err(e) = cli::execute(cli).await {
+        eprintln!("❌ Error: {}", e);
 
-    tracing::info!("Web Terminal initialized - ready for implementation");
+        // Exit with appropriate error code
+        // Per spec-kit/005-cli-spec.md exit codes
+        let exit_code = match e.to_string().as_str() {
+            s if s.contains("config") => 2,
+            s if s.contains("auth") => 3,
+            s if s.contains("permission") => 4,
+            s if s.contains("not found") => 5,
+            s if s.contains("already running") => 10,
+            s if s.contains("not running") => 11,
+            s if s.contains("cannot connect") => 12,
+            _ => 1,
+        };
 
-    Ok(())
+        std::process::exit(exit_code);
+    }
 }
+
+// Build metadata injected by build.rs
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+pub const GIT_COMMIT: &str = env!("GIT_COMMIT");
+pub const GIT_BRANCH: &str = env!("GIT_BRANCH");
+pub const BUILD_TIMESTAMP: &str = env!("BUILD_TIMESTAMP");
+pub const BUILD_PROFILE: &str = env!("BUILD_PROFILE");

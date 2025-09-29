@@ -211,11 +211,11 @@ pub enum Message {
 **Technology:** Rust + Tokio
 **Responsibilities:**
 - Create and destroy sessions
-- Maintain session registry
+- Maintain session registry (in-memory DashMap)
 - Assign unique session IDs
 - Enforce session limits
 - Implement session timeout
-- Persist session state
+- Store session state in memory (ephemeral)
 
 **Key Interfaces:**
 ```rust
@@ -708,15 +708,16 @@ pub struct ResourceUsage {
 
 ### Horizontal Scaling Strategy
 
-1. **Stateless Server Design**
-   - Session state stored in Redis (future)
-   - No local session storage dependencies
-   - Enable load balancing across multiple servers
+1. **In-Memory Session Storage**
+   - Session state stored in DashMap (per ADR 012-data-storage-decision.md)
+   - No persistent database required
+   - Use sticky sessions for load balancing (session affinity)
+   - Future: Optional Redis backend for shared session state
 
 2. **Resource Pooling**
    - Process pool for command execution
-   - Connection pool for database (if needed)
    - Thread pool for I/O operations
+   - In-memory data structures (DashMap for sessions)
 
 3. **Async I/O Throughout**
    - Non-blocking I/O operations
@@ -741,6 +742,25 @@ pub struct ResourceUsage {
 ---
 
 ## Architecture Decision Records
+
+### ADR-000: In-Memory Storage Only
+
+**Status:** Accepted
+**Date:** 2025-09-29
+**Context:** Need data storage strategy for session state, command history, and user context
+**Decision:** Use in-memory storage only (DashMap), no persistent database
+**Consequences:**
+- ✅ Simple deployment (single binary, no database)
+- ✅ Fast performance (direct memory access)
+- ✅ Security (no persistent sensitive data)
+- ✅ Crash recovery is simple (clean slate)
+- ❌ Session loss on server restart
+- ❌ No command history across sessions
+- ❌ Requires sticky sessions for load balancing
+
+**Full Documentation:** See [012-data-storage-decision.md](./012-data-storage-decision.md) for comprehensive details
+
+---
 
 ### ADR-001: Rust for Backend
 

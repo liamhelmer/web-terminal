@@ -474,53 +474,294 @@ test.describe('Security Tests', () => {
 
 ## Continuous Integration
 
-### CI Pipeline
+### ⚠️ CRITICAL: GitHub Actions CI is MANDATORY
+
+**Per spec-kit requirements updated 2025-09-29:**
+- **GitHub Actions workflows are REQUIRED for feature completion**
+- **All workflows MUST pass before merge**
+- **Security scans are BLOCKING** (cargo audit, npm audit)
+- **Test coverage enforcement in CI** (>80% required)
+
+### CI Architecture (2025 Best Practices)
+
+The web-terminal project uses **multiple specialized GitHub Actions workflows** instead of a single monolithic workflow:
+
+1. **`ci-rust.yml`** - Rust backend CI (tests, clippy, fmt, audit, coverage)
+2. **`ci-frontend.yml`** - TypeScript frontend CI (lint, typecheck, tests, coverage)
+3. **`ci-integration.yml`** - Full integration tests with real server
+4. **`security.yml`** - Security scanning (daily + on PR)
+5. **`release.yml`** - Automated releases with cross-platform builds
+
+**Why multiple workflows?**
+- ✅ Parallel execution (faster CI, <5 min target)
+- ✅ Clear failure isolation (know exactly what broke)
+- ✅ Selective re-runs (don't re-run everything on minor changes)
+- ✅ Different schedules (security daily, tests on PR)
+
+### CI Pipeline Requirements
+
+#### Required Actions (2025-Compliant)
+
+**🚨 DEPRECATED ACTIONS (DO NOT USE):**
+- ❌ `actions-rs/toolchain` - DEPRECATED
+- ❌ `actions-rs/cargo` - DEPRECATED
+- ❌ `actions/upload-artifact@v3` - UNSUPPORTED as of Jan 2025
+
+**✅ APPROVED ACTIONS (Use These):**
+- ✅ `dtolnay/rust-toolchain@stable` - Rust toolchain (minimalist, recommended)
+- ✅ `Swatinem/rust-cache@v2` - Rust dependency caching (50% faster builds)
+- ✅ `actions/upload-artifact@v4` - Artifact upload (10x performance improvement)
+- ✅ `actions/setup-node@v4` - Node.js with built-in pnpm caching
+- ✅ `actions-rust-lang/audit@v1` - Security vulnerability scanning
+- ✅ `EmbarkStudios/cargo-deny-action@v2` - License + security compliance
+- ✅ `taiki-e/upload-rust-binary-action@v1` - Cross-platform binary releases
+
+#### Security Hardening
 
 ```yaml
-# .github/workflows/test.yml
+# Pin actions to commit SHA (not tags) for supply chain security
+- uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+- uses: dtolnay/rust-toolchain@stable
+- uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2.7.3
+```
 
-name: Tests
+**Additional Requirements:**
+- Use Dependabot to auto-update GitHub Actions
+- Require PR approval for `.github/workflows/` changes
+- Use OIDC for cloud deployments (no long-lived secrets)
+- Pin action versions to commit SHA (prevents supply chain attacks)
 
-on: [push, pull_request]
+### Workflow Files
+
+All workflow files are located in `.github/workflows/`:
+
+#### 1. `ci-rust.yml` - Rust Backend CI
+
+**Purpose:** Test, lint, format check, security audit, code coverage
+
+**Triggers:** Push, Pull Request
+
+**Jobs:**
+- `test` - Run all unit and integration tests
+- `clippy` - Rust linting
+- `fmt` - Code formatting check
+- `audit` - Security vulnerability scanning (cargo audit)
+- `deny` - License compliance and banned dependencies
+- `coverage` - Code coverage report → Codecov
+
+**Performance:** < 3 minutes (with caching)
+
+**Example:**
+```yaml
+name: Rust CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
 
 jobs:
-  test-backend:
+  test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - run: cargo test --all-features
-      - run: cargo test --test integration_*
-      - run: cargo tarpaulin --out Xml
 
-  test-frontend:
+  clippy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: pnpm/action-setup@v2
-      - run: pnpm install
-      - run: pnpm test
-      - run: pnpm test:coverage
-
-  test-e2e:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - run: docker-compose up -d
-      - run: pnpm test:e2e
-      - uses: actions/upload-artifact@v3
-        if: failure()
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          name: playwright-report
-          path: playwright-report/
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo clippy -- -D warnings
 
-  security-scan:
+  audit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - run: cargo audit
-      - run: pnpm audit
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/audit@v1
+        with:
+          denyWarnings: true
 ```
+
+#### 2. `ci-frontend.yml` - Frontend CI
+
+**Purpose:** Lint, typecheck, unit tests, E2E tests, code coverage
+
+**Triggers:** Push, Pull Request
+
+**Jobs:**
+- `lint` - ESLint checks
+- `typecheck` - TypeScript compilation check
+- `test` - Vitest unit tests
+- `e2e` - Playwright end-to-end tests
+- `coverage` - Code coverage → Codecov
+
+**Performance:** < 2 minutes (with caching)
+
+#### 3. `ci-integration.yml` - Integration Tests
+
+**Purpose:** Full-stack integration testing with real server
+
+**Triggers:** Push, Pull Request
+
+**Process:**
+1. Build Rust backend (port 8080)
+2. Build TypeScript frontend
+3. Start backend server on port 8080 (single-port architecture)
+4. Run Playwright E2E tests against running server
+5. Upload test reports on failure
+
+**Performance:** < 4 minutes
+
+**Critical:** Tests MUST use relative URLs and respect single-port architecture
+
+#### 4. `security.yml` - Security Scanning
+
+**Purpose:** Continuous security monitoring
+
+**Triggers:** Daily at 00:00 UTC, Pull Request (blocking)
+
+**Scans:**
+- `cargo audit` - Rust dependency vulnerabilities
+- `npm audit` - Node.js dependency vulnerabilities
+- `cargo deny` - License compliance and banned crates
+- OWASP ZAP (optional, in dedicated workflow)
+
+**Policy:** Security vulnerabilities are **BLOCKING** - PRs cannot merge with critical vulnerabilities
+
+#### 5. `release.yml` - Automated Releases
+
+**Purpose:** Create GitHub releases with cross-platform binaries
+
+**Triggers:** Version tags (`v*`)
+
+**Process:**
+1. Run all CI checks (enforce passing tests)
+2. Build cross-platform binaries (Linux, macOS, Windows)
+3. Create GitHub Release with changelog
+4. Upload binary artifacts
+5. Build and push Docker image
+6. Deploy to staging/production
+
+**Cross-Platform Matrix:**
+- Linux: x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu
+- macOS: universal binaries (x86_64 + aarch64)
+- Windows: x86_64-pc-windows-msvc
+
+### Coverage Reporting
+
+**Tool:** Codecov (cloud-based)
+
+**Integration:**
+```yaml
+- name: Generate coverage
+  run: cargo tarpaulin --out Xml
+
+- name: Upload to Codecov
+  uses: codecov/codecov-action@v4
+  with:
+    token: ${{ secrets.CODECOV_TOKEN }}
+    files: ./cobertura.xml
+    fail_ci_if_error: true  # Block on upload failure
+```
+
+**Requirements:**
+- Coverage reports uploaded from CI
+- Coverage badge in README
+- Enforce 80% minimum coverage (fail CI if below)
+
+### Caching Strategy
+
+**Rust:**
+```yaml
+- uses: Swatinem/rust-cache@v2
+  with:
+    # Cache key based on Cargo.lock + rust-toolchain
+    # Automatic cache cleaning for stale artifacts
+```
+
+**Node.js:**
+```yaml
+- uses: actions/setup-node@v4
+  with:
+    node-version: 20
+    cache: 'pnpm'  # Built-in pnpm caching
+```
+
+**Benefits:**
+- 50% faster Rust builds (from research)
+- 30-40% faster Node.js builds
+- Automatic cache invalidation on dependency changes
+
+### Artifact Management
+
+**Test Reports:**
+```yaml
+- uses: actions/upload-artifact@v4
+  if: failure()
+  with:
+    name: playwright-report
+    path: playwright-report/
+    retention-days: 7  # Reduced from default 90 days
+```
+
+**Binary Releases:**
+```yaml
+- uses: actions/upload-artifact@v4
+  with:
+    name: web-terminal-${{ matrix.platform }}
+    path: target/release/web-terminal
+    retention-days: 30
+```
+
+### Branch Protection Rules
+
+**Required for `main` branch:**
+- ✅ Require pull request reviews (1 approval minimum)
+- ✅ Require status checks to pass:
+  - `ci-rust.yml` / `test`
+  - `ci-rust.yml` / `clippy`
+  - `ci-rust.yml` / `audit`
+  - `ci-frontend.yml` / `test`
+  - `ci-frontend.yml` / `typecheck`
+  - `ci-integration.yml` / `integration-tests`
+  - `security.yml` / `cargo-audit`
+- ✅ Require branches to be up to date
+- ✅ Require conversation resolution before merging
+- ✅ Do not allow bypassing (no admin exceptions)
+
+### Performance Targets
+
+Per spec-kit/009-deployment-spec.md:
+- ✅ **Total CI pipeline duration: < 5 minutes** (all workflows combined)
+- ✅ **Rust CI: < 3 minutes** (with caching)
+- ✅ **Frontend CI: < 2 minutes** (with caching)
+- ✅ **Integration tests: < 4 minutes**
+- ✅ **Security scans: < 2 minutes**
+
+**Optimization techniques:**
+- Parallel job execution
+- Smart caching (Swatinem/rust-cache, pnpm cache)
+- Matrix builds only on release
+- Selective test running (path filters)
+
+### Monitoring and Alerts
+
+**Failure Notifications:**
+- GitHub Actions email notifications (enabled by default)
+- Slack integration (optional)
+- Discord webhook (optional)
+
+**Metrics to Track:**
+- CI success rate (target: >95%)
+- Average CI duration (target: <5 min)
+- Flaky test rate (target: <2%)
+- Security vulnerability response time (target: <24h for critical)
 
 ---
 
@@ -539,21 +780,7 @@ tests/
 │       └── test.bin
 ```
 
-### Test Database
-
-```sql
--- tests/fixtures/schema.sql
-
-CREATE TABLE test_users (
-  id VARCHAR(36) PRIMARY KEY,
-  username VARCHAR(255) NOT NULL,
-  email VARCHAR(255) NOT NULL
-);
-
-INSERT INTO test_users VALUES
-  ('user1', 'alice', 'alice@test.com'),
-  ('user2', 'bob', 'bob@test.com');
-```
+**Note:** With in-memory storage architecture (per ADR 012-data-storage-decision.md), all session data is stored in DashMap structures. Test fixtures provide data for initializing in-memory state during tests. No persistent database is used.
 
 ---
 
@@ -561,27 +788,44 @@ INSERT INTO test_users VALUES
 
 ### Feature Acceptance
 
+**🚨 MANDATORY: A feature is ONLY considered complete when ALL GitHub Actions CI workflows pass.**
+
 A feature is considered complete when:
 
-1. ✅ Unit tests pass with >80% coverage
-2. ✅ Integration tests pass
-3. ✅ E2E tests pass for happy path
-4. ✅ Performance benchmarks meet targets
-5. ✅ Security tests pass
-6. ✅ Code review approved
-7. ✅ Documentation updated
+1. ✅ **GitHub Actions CI workflows pass** (REQUIRED - blocking criteria)
+   - `ci-rust.yml` - All Rust tests, linting, security scans pass
+   - `ci-frontend.yml` - All TypeScript tests, linting, type checks pass
+   - `ci-integration.yml` - Full integration tests pass with real server
+2. ✅ Unit tests pass with >80% coverage (enforced in CI)
+3. ✅ Integration tests pass (enforced in CI)
+4. ✅ E2E tests pass for happy path (enforced in CI)
+5. ✅ Performance benchmarks meet targets (enforced in CI)
+6. ✅ Security tests pass (enforced in CI)
+7. ✅ Code review approved
+8. ✅ Documentation updated
+
+**Failure Policy:** If ANY GitHub Actions workflow fails, the feature is NOT complete. No merge allowed until all checks are green.
 
 ### Release Acceptance
 
+**🚨 MANDATORY: A release is ONLY ready when ALL GitHub Actions workflows pass, including security scans.**
+
 A release is ready when:
 
-1. ✅ All tests passing in CI
-2. ✅ Coverage >80%
-3. ✅ No critical security vulnerabilities
+1. ✅ **All GitHub Actions CI workflows passing** (REQUIRED - blocking criteria)
+   - `ci-rust.yml` ✅
+   - `ci-frontend.yml` ✅
+   - `ci-integration.yml` ✅
+   - `security.yml` ✅ (no critical vulnerabilities)
+2. ✅ Coverage >80% (enforced in CI, uploaded to Codecov)
+3. ✅ No critical security vulnerabilities (cargo audit + npm audit in CI)
 4. ✅ Load tests pass (10k concurrent sessions)
-5. ✅ E2E tests pass on all supported browsers
-6. ✅ Performance regression tests pass
+5. ✅ E2E tests pass on all supported browsers (enforced in CI)
+6. ✅ Performance regression tests pass (enforced in CI)
 7. ✅ Manual QA sign-off
+8. ✅ `release.yml` workflow successfully creates GitHub Release with artifacts
+
+**Failure Policy:** Release process is BLOCKED if any workflow fails. All issues must be resolved before release.
 
 ---
 

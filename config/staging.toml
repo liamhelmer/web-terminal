@@ -1,0 +1,31 @@
+# Staging Environment Configuration
+# Per spec-kit/009-deployment-spec.md
+
+[server]
+host = "0.0.0.0"
+port = 8080
+max_connections = 1000
+worker_threads = 2
+
+[session]
+timeout = 1800  # 30 minutes
+max_sessions_per_user = 5
+workspace_quota = 536870912  # 512MB
+max_processes = 5
+
+[security]
+jwt_secret_env = "WEB_TERMINAL_JWT_SECRET"
+
+[resources]
+max_memory_per_session = 536870912  # 512MB
+max_cpu_percent = 50
+
+[logging]
+level = "debug"
+format = "json"
+output = "stdout"
+
+[monitoring]
+enable_metrics = true
+metrics_path = "/api/v1/metrics"
+enable_tracing = true

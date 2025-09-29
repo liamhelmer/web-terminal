@@ -291,39 +291,6 @@ EXAMPLES:
 
 ---
 
-### 6. Database (Future)
-
-#### `db migrate` - Run database migrations
-
-```bash
-web-terminal db migrate [OPTIONS]
-
-OPTIONS:
-  --up <N>            Apply N migrations up
-  --down <N>          Apply N migrations down
-  --version <V>       Migrate to specific version
-  --dry-run           Show migrations without applying
-
-EXAMPLES:
-  web-terminal db migrate --up 1
-  web-terminal db migrate --version 5
-  web-terminal db migrate --dry-run
-```
-
-#### `db reset` - Reset database
-
-```bash
-web-terminal db reset [OPTIONS]
-
-OPTIONS:
-  --force    Skip confirmation (dangerous!)
-
-EXAMPLES:
-  web-terminal db reset
-```
-
----
-
 ## Configuration File Format
 
 ### config.toml

@@ -1,0 +1,264 @@
+name: Security Scanning
+
+# Run daily security scans and on pull requests
+on:
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch: # Allow manual triggers
+
+permissions:
+  contents: read
+  security-events: write
+  pull-requests: write
+
+env:
+  CARGO_TERM_COLOR: always
+  NODE_VERSION: '20'
+  PNPM_VERSION: '8'
+
+jobs:
+  # Rust security audits
+  rust-audit:
+    name: Rust Security Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@1482605bfc5719782e1267fd0c0cc350fe7646b8 # stable
+        with:
+          toolchain: stable
+
+      - name: Run cargo audit
+        uses: actions-rust-lang/audit@f891efb0d416ac3b07503d0e8b6aeae0b6d40641 # v1.0.1
+        with:
+          # Fail on security vulnerabilities
+          ignore: RUSTSEC-0000-0000 # Add ignored advisories here
+
+      - name: Run cargo deny
+        uses: EmbarkStudios/cargo-deny-action@8371184bd11e21dcf8ac82ebf7268 # v1.6.2
+        with:
+          log-level: warn
+          command: check
+          arguments: --all-features
+
+  # Frontend security audits
+  frontend-audit:
+    name: Frontend Security Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d # v3.0.0
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
+
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Run pnpm audit
+        working-directory: ./frontend
+        run: |
+          pnpm audit --audit-level=moderate || {
+            echo "Security vulnerabilities found in frontend dependencies"
+            pnpm audit --json > audit-results.json
+            exit 1
+          }
+
+      - name: Upload audit results
+        if: failure()
+        uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
+        with:
+          name: frontend-audit-results
+          path: frontend/audit-results.json
+          retention-days: 30
+
+  # OWASP ZAP security scanning
+  owasp-zap:
+    name: OWASP ZAP Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@1482605bfc5719782e1267fd0c0cc350fe7646b8 # stable
+        with:
+          toolchain: stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2.7.3
+
+      - name: Build backend
+        run: cargo build --release
+
+      - name: Setup Node.js
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d # v3.0.0
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Build frontend
+        working-directory: ./frontend
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm run build
+
+      - name: Copy frontend assets
+        run: |
+          mkdir -p static
+          cp -r frontend/dist/* static/
+
+      - name: Start application
+        run: |
+          WEB_TERMINAL_PORT=8080 \
+          WEB_TERMINAL_JWT_SECRET=test-secret \
+          ./target/release/web-terminal start &
+          echo $! > server.pid
+
+          # Wait for server
+          for i in {1..30}; do
+            if curl -f http://localhost:8080/health > /dev/null 2>&1; then
+              break
+            fi
+            sleep 1
+          done
+
+      - name: Run OWASP ZAP baseline scan
+        uses: zaproxy/action-baseline@v0.10.0
+        with:
+          target: 'http://localhost:8080'
+          rules_file_name: '.zap/rules.tsv'
+          cmd_options: '-a'
+
+      - name: Stop application
+        if: always()
+        run: |
+          if [ -f server.pid ]; then
+            kill $(cat server.pid) || true
+          fi
+
+      - name: Upload ZAP report
+        if: always()
+        uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
+        with:
+          name: zap-scan-report
+          path: report_html.html
+          retention-days: 30
+
+  # Dependency review (only on PRs)
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@733dd5d4a5203f238c33806593ec0f5fc5343d8c # v4.0.0
+        with:
+          fail-on-severity: moderate
+          deny-licenses: GPL-3.0, AGPL-3.0
+
+  # CodeQL analysis
+  codeql:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ['javascript']
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@e8893c57a1f3a2b659b6b55564fdfdbbd2982911 # v3.24.0
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-extended
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@e8893c57a1f3a2b659b6b55564fdfdbbd2982911 # v3.24.0
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@e8893c57a1f3a2b659b6b55564fdfdbbd2982911 # v3.24.0
+        with:
+          category: "/language:${{ matrix.language }}"
+
+  # Trivy container scanning
+  trivy:
+    name: Trivy Container Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Build Docker image
+        run: docker build -t web-terminal:scan .
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'web-terminal:scan'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@e8893c57a1f3a2b659b6b55564fdfdbbd2982911 # v3.24.0
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  # All security checks must pass
+  security-success:
+    name: Security Checks Success
+    if: always()
+    needs: [rust-audit, frontend-audit, owasp-zap, dependency-review, codeql, trivy]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check all jobs
+        run: |
+          # Allow dependency-review to be skipped on non-PR events
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            # Remove dependency-review from checks
+            needs_status="${{ toJSON(needs) }}"
+            needs_status=$(echo "$needs_status" | jq 'del(.["dependency-review"])')
+          else
+            needs_status="${{ toJSON(needs) }}"
+          fi
+
+          if echo "$needs_status" | jq -e '.[] | select(.result == "failure" or .result == "cancelled")' > /dev/null; then
+            echo "One or more security checks failed or were cancelled"
+            exit 1
+          fi
+          echo "All security checks passed successfully"

@@ -1,0 +1,36 @@
+# Production Environment Configuration
+# Per spec-kit/009-deployment-spec.md
+
+[server]
+host = "0.0.0.0"
+port = 8080
+max_connections = 10000
+worker_threads = 0  # Auto-detect CPU cores
+
+[session]
+timeout = 3600  # 60 minutes
+max_sessions_per_user = 10
+workspace_quota = 1073741824  # 1GB
+max_processes = 10
+
+[security]
+jwt_secret_env = "WEB_TERMINAL_JWT_SECRET"
+
+[resources]
+max_memory_per_session = 1073741824  # 1GB
+max_cpu_percent = 80
+
+[logging]
+level = "info"
+format = "json"
+output = "stdout"
+
+[monitoring]
+enable_metrics = true
+metrics_path = "/api/v1/metrics"
+enable_tracing = true
+
+# TLS Configuration (use Let's Encrypt or cloud load balancer)
+# [tls]
+# cert_path = "/etc/letsencrypt/live/web-terminal.example.com/fullchain.pem"
+# key_path = "/etc/letsencrypt/live/web-terminal.example.com/privkey.pem"

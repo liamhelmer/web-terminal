@@ -194,7 +194,6 @@ services:
       - "8080:8080"
     volumes:
       - ./config:/app/config:ro
-      - sessions:/app/data/sessions
       - workspaces:/app/data/workspaces
       - logs:/app/data/logs
     environment:
@@ -242,7 +241,6 @@ services:
       - web-terminal-net
 
 volumes:
-  sessions:
   workspaces:
   logs:
   prometheus-data:
@@ -345,17 +343,12 @@ spec:
         - name: config
           mountPath: /app/config
           readOnly: true
-        - name: sessions
-          mountPath: /app/data/sessions
         - name: workspaces
           mountPath: /app/data/workspaces
       volumes:
       - name: config
         configMap:
           name: web-terminal-config
-      - name: sessions
-        persistentVolumeClaim:
-          claimName: sessions-pvc
       - name: workspaces
         persistentVolumeClaim:
           claimName: workspaces-pvc
@@ -374,17 +367,6 @@ spec:
     port: 80
     targetPort: 8080
     name: http
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: sessions-pvc
-spec:
-  accessModes:
-    - ReadWriteMany
-  resources:
-    requests:
-      storage: 10Gi
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -607,22 +589,17 @@ setup.kibana:
 
 #### What to Backup
 
-1. **Session Data** (optional, ephemeral)
-   - Location: `/app/data/sessions`
-   - Frequency: Daily
-   - Retention: 7 days
-
-2. **User Workspaces** (important)
+1. **User Workspaces** (important)
    - Location: `/app/data/workspaces`
    - Frequency: Daily
    - Retention: 30 days
 
-3. **Configuration** (critical)
+2. **Configuration** (critical)
    - Location: `/app/config`
    - Frequency: On change
    - Retention: Indefinite
 
-4. **Application Logs**
+3. **Application Logs**
    - Location: `/app/data/logs`
    - Frequency: Daily
    - Retention: 90 days
@@ -705,96 +682,500 @@ kubectl rollout status deployment/web-terminal -n web-terminal
 
 ## CI/CD Pipeline
 
-### GitHub Actions
+### ⚠️ CRITICAL: GitHub Actions CI/CD is MANDATORY
+
+**Per spec-kit requirements updated 2025-09-29:**
+- **GitHub Actions workflows are REQUIRED for all deployments**
+- **All CI checks MUST pass before deployment**
+- **Security scans are BLOCKING** (no deployments with critical vulnerabilities)
+- **Automated releases REQUIRED for version tags**
+
+### CI/CD Architecture (2025 Best Practices)
+
+The web-terminal project uses **automated GitHub Actions workflows** for the entire deployment pipeline:
+
+#### Workflow Overview
+
+1. **`ci-rust.yml`** - Rust backend CI (tests, security, coverage) - **BLOCKING**
+2. **`ci-frontend.yml`** - Frontend CI (tests, lint, typecheck) - **BLOCKING**
+3. **`ci-integration.yml`** - Full integration tests - **BLOCKING**
+4. **`security.yml`** - Security scanning (daily + PR) - **BLOCKING**
+5. **`release.yml`** - Automated releases (on version tags)
+6. **`deploy.yml`** - Deployment automation (staging → production)
+
+**Deployment Gating:** Deployments are ONLY allowed when ALL CI workflows pass ✅
+
+### GitHub Actions - Complete Deployment Pipeline
+
+**Location:** `.github/workflows/`
+
+#### 1. Continuous Integration (Pre-Deployment)
+
+**Required Workflows (MUST pass before deployment):**
 
 ```yaml
-# .github/workflows/deploy.yml
+# ci-rust.yml - Rust Backend CI
+- Test all features
+- Run clippy (linting)
+- Format check (rustfmt)
+- Security audit (cargo audit, cargo deny)
+- Code coverage (>80% required)
 
-name: Deploy
+# ci-frontend.yml - Frontend CI
+- ESLint (linting)
+- TypeScript type checking
+- Vitest unit tests
+- Playwright E2E tests
+- Code coverage (>75% required)
+
+# ci-integration.yml - Integration Tests
+- Build backend + frontend
+- Start server on port 8080 (single-port)
+- Run full E2E test suite
+- Docker build verification
+
+# security.yml - Security Scanning
+- cargo audit (Rust vulnerabilities)
+- pnpm audit (Node vulnerabilities)
+- OWASP ZAP baseline scan
+- Trivy container scanning
+```
+
+**Failure Policy:** If ANY of these workflows fail, deployment is BLOCKED ❌
+
+#### 2. Automated Release Workflow
+
+**File:** `.github/workflows/release.yml`
+
+**Trigger:** Version tags matching `v*` (e.g., `v1.0.0`)
+
+**Process:**
+1. ✅ Verify ALL CI workflows passed
+2. Build cross-platform binaries (Linux x86_64/ARM64, macOS universal, Windows)
+3. Create GitHub Release with changelog
+4. Upload binary artifacts to release
+5. Build multi-arch Docker images (amd64, arm64)
+6. Push images to GitHub Container Registry (ghcr.io)
+7. Optionally trigger deployment to staging
+
+**Key Features:**
+- Uses `taiki-e/upload-rust-binary-action@v1` for cross-platform builds
+- OIDC authentication for secure cloud deployments (no long-lived secrets)
+- Automatic changelog generation from git tags
+- Multi-architecture Docker builds using buildx
+
+**Example Release Workflow:**
+
+```yaml
+name: Release
 
 on:
   push:
-    branches:
-      - main
     tags:
       - 'v*'
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
 jobs:
-  build:
+  # Ensure all CI checks passed before release
+  verify-ci:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Check required workflows
+        uses: lewagon/wait-on-check-action@v1.3.1
+        with:
+          ref: ${{ github.ref }}
+          check-name: 'test'  # From ci-rust.yml
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build Docker image
-        run: docker build -t web-terminal:${{ github.sha }} .
+  # Build cross-platform binaries
+  release-binaries:
+    needs: verify-ci
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+          - os: macos-latest
+            target: universal-apple-darwin  # Universal binary (x86_64 + aarch64)
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
 
-      - name: Tag image
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build and upload binaries
+        uses: taiki-e/upload-rust-binary-action@v1
+        with:
+          bin: web-terminal
+          target: ${{ matrix.target }}
+          tar: unix
+          zip: windows
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Build and push Docker images
+  release-docker:
+    needs: verify-ci
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=sha
+
+      - name: Build and push multi-arch image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Create GitHub Release
+  create-release:
+    needs: [release-binaries, release-docker]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate changelog
+        id: changelog
         run: |
-          docker tag web-terminal:${{ github.sha }} registry.example.com/web-terminal:${{ github.sha }}
-          docker tag web-terminal:${{ github.sha }} registry.example.com/web-terminal:latest
+          # Generate changelog from git commits since last tag
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -z "$PREV_TAG" ]; then
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" --reverse)
+          else
+            CHANGELOG=$(git log ${PREV_TAG}..HEAD --pretty=format:"- %s (%h)" --reverse)
+          fi
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: Push to registry
-        run: |
-          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin registry.example.com
-          docker push registry.example.com/web-terminal:${{ github.sha }}
-          docker push registry.example.com/web-terminal:latest
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          body: |
+            ## What's Changed
+            ${{ steps.changelog.outputs.changelog }}
 
+            ## Docker Image
+            ```
+            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+            ```
+
+            ## Installation
+            Download the appropriate binary for your platform from the Assets section below.
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+
+#### 3. Deployment Workflow
+
+**File:** `.github/workflows/deploy.yml`
+
+**Triggers:**
+- Automatic: After successful release creation
+- Manual: `workflow_dispatch` for emergency deployments
+
+**Environments:**
+- `staging` - Automatic deployment after release
+- `production` - Requires manual approval
+
+**Process:**
+1. ✅ Verify all CI workflows passed
+2. Deploy to staging environment
+3. Run smoke tests on staging
+4. Wait for manual approval (production only)
+5. Deploy to production
+6. Run smoke tests on production
+7. Monitor deployment health
+
+**Example Deployment Workflow:**
+
+```yaml
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: ["Release"]
+    types:
+      - completed
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      version:
+        description: 'Docker image tag to deploy'
+        required: true
+
+jobs:
   deploy-staging:
-    needs: build
+    if: github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     environment: staging
     steps:
-      - name: Deploy to staging
+      - uses: actions/checkout@v4
+
+      - name: Configure kubectl
         run: |
-          kubectl set image deployment/web-terminal web-terminal=registry.example.com/web-terminal:${{ github.sha }} -n staging
+          echo "${{ secrets.KUBECONFIG_STAGING }}" | base64 -d > kubeconfig
+          export KUBECONFIG=kubeconfig
+
+      - name: Deploy to Kubernetes
+        run: |
+          kubectl set image deployment/web-terminal \
+            web-terminal=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }} \
+            -n staging
+
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status deployment/web-terminal -n staging --timeout=5m
+
+      - name: Smoke tests
+        run: |
+          # Test single-port endpoint (8080)
+          curl -f http://staging.example.com:8080/health || exit 1
+          curl -f http://staging.example.com:8080/ || exit 1
 
   deploy-production:
     needs: deploy-staging
     runs-on: ubuntu-latest
-    environment: production
+    environment: production  # Requires manual approval
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
-      - name: Deploy to production
+      - uses: actions/checkout@v4
+
+      - name: Configure kubectl
         run: |
-          kubectl set image deployment/web-terminal web-terminal=registry.example.com/web-terminal:${{ github.sha }} -n production
+          echo "${{ secrets.KUBECONFIG_PRODUCTION }}" | base64 -d > kubeconfig
+          export KUBECONFIG=kubeconfig
+
+      - name: Deploy to Kubernetes
+        run: |
+          kubectl set image deployment/web-terminal \
+            web-terminal=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }} \
+            -n production
+
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status deployment/web-terminal -n production --timeout=5m
+
+      - name: Smoke tests
+        run: |
+          # Test single-port endpoint (8080)
+          curl -f https://web-terminal.example.com/health || exit 1
+          curl -f https://web-terminal.example.com/ || exit 1
+
+      - name: Notify stakeholders
+        if: success()
+        run: |
+          # Send notification (Slack, email, etc.)
+          echo "Production deployment successful: ${{ github.ref_name }}"
+```
+
+#### 4. Cloud Deployment with OIDC (No Long-Lived Secrets)
+
+**Example: AWS ECS Deployment**
+
+```yaml
+name: Deploy to AWS ECS
+
+on:
+  workflow_run:
+    workflows: ["Release"]
+    types:
+      - completed
+
+permissions:
+  id-token: write  # Required for OIDC
+  contents: read
+
+jobs:
+  deploy-ecs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::123456789012:role/GitHubActionsRole
+          aws-region: us-east-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push to ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: web-terminal
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+      - name: Update ECS service
+        run: |
+          aws ecs update-service \
+            --cluster web-terminal-cluster \
+            --service web-terminal-service \
+            --force-new-deployment
+```
+
+### Security Best Practices
+
+1. **No Long-Lived Secrets:**
+   - Use OIDC for cloud deployments (AWS, Azure, GCP)
+   - Tokens auto-rotated, valid only minutes
+   - Eliminates credential theft risk
+
+2. **Workflow Security:**
+   - Pin actions to commit SHA (supply chain security)
+   - Require PR approval for `.github/workflows/` changes
+   - Use Dependabot for action updates
+   - Separate environments with approval gates
+
+3. **Container Security:**
+   - Multi-stage Docker builds (minimal attack surface)
+   - Non-root user in containers
+   - Trivy scanning in CI
+   - Regular base image updates via Dependabot
+
+### Performance Targets
+
+Per spec-kit/008-testing-spec.md:
+- ✅ **Total CI/CD pipeline: < 5 minutes** (parallel execution)
+- ✅ **Build time: < 2 minutes** (with caching)
+- ✅ **Deployment time: < 5 minutes** (automated rollout)
+- ✅ **Rollback time: < 2 minutes** (automated)
+
+### Monitoring and Rollback
+
+**Automatic Rollback Triggers:**
+- Health check failures after deployment
+- Error rate spike (>5% increase)
+- Latency degradation (>50ms p95)
+- Critical log errors
+
+**Manual Rollback:**
+```bash
+# Kubernetes rollback (automated via GitHub Actions)
+kubectl rollout undo deployment/web-terminal -n production
+
+# View rollout history
+kubectl rollout history deployment/web-terminal -n production
 ```
 
 ---
 
 ## Deployment Checklist
 
-### Pre-Deployment
+### Pre-Deployment (Automated via GitHub Actions)
 
-- [ ] All tests passing
-- [ ] Code review approved
-- [ ] Security scan completed
-- [ ] Performance benchmarks passed
+**🚨 MANDATORY: ALL GitHub Actions workflows MUST pass before deployment:**
+
+- [x] **`ci-rust.yml` passed** ✅ (tests, clippy, fmt, audit, coverage)
+- [x] **`ci-frontend.yml` passed** ✅ (lint, typecheck, tests, coverage)
+- [x] **`ci-integration.yml` passed** ✅ (full E2E tests with real server)
+- [x] **`security.yml` passed** ✅ (cargo audit, npm audit, OWASP ZAP, Trivy)
+- [ ] Code review approved (manual gate)
+- [ ] Performance benchmarks passed (enforced in CI)
 - [ ] Documentation updated
-- [ ] Changelog updated
-- [ ] Backup completed
+- [ ] Changelog updated (auto-generated by release workflow)
+- [ ] Backup completed (automated)
 - [ ] Maintenance window scheduled (if required)
 
-### Deployment
+**Failure Policy:** Deployment is BLOCKED ❌ if ANY workflow fails. No exceptions.
 
-- [ ] Build and tag Docker image
-- [ ] Push image to registry
-- [ ] Update configuration (if needed)
-- [ ] Deploy to staging environment
-- [ ] Run smoke tests on staging
-- [ ] Deploy to production
-- [ ] Monitor deployment progress
-- [ ] Verify health checks passing
+### Deployment (Automated via GitHub Actions)
 
-### Post-Deployment
+**Process (fully automated by `release.yml` and `deploy.yml`):**
 
-- [ ] Run smoke tests on production
-- [ ] Monitor error rates
-- [ ] Monitor performance metrics
-- [ ] Check logs for errors
-- [ ] Verify user-facing functionality
-- [ ] Update status page
-- [ ] Notify stakeholders
+- [x] Build and tag Docker image (multi-arch: amd64, arm64)
+- [x] Push image to GitHub Container Registry (ghcr.io)
+- [x] Build cross-platform binaries (Linux, macOS universal, Windows)
+- [x] Create GitHub Release with artifacts
+- [x] Deploy to staging environment (automated)
+- [x] Run smoke tests on staging (automated health checks)
+- [ ] Manual approval gate for production (GitHub Environment protection)
+- [x] Deploy to production (automated after approval)
+- [x] Monitor deployment progress (Kubernetes rollout status)
+- [x] Verify health checks passing (automated curl tests)
+
+**Manual Steps:**
+1. Create git tag: `git tag -a v1.0.0 -m "Release v1.0.0"`
+2. Push tag: `git push origin v1.0.0`
+3. GitHub Actions handles everything else automatically
+4. Approve production deployment when ready (GitHub UI)
+
+### Post-Deployment (Automated Monitoring)
+
+**Automated Checks:**
+- [x] Run smoke tests on production (health endpoint, main page)
+- [x] Monitor error rates (Prometheus alerts)
+- [x] Monitor performance metrics (Grafana dashboards)
+- [x] Check logs for errors (structured logging to ELK stack)
+- [x] Verify health checks passing (Kubernetes liveness/readiness probes)
+
+**Manual Verification:**
+- [ ] Verify user-facing functionality (manual QA)
+- [ ] Update status page (if applicable)
+- [ ] Notify stakeholders (automated via workflow success)
 - [ ] Document any issues
+
+**Rollback Procedure (if needed):**
+```bash
+# Automated rollback via GitHub Actions
+kubectl rollout undo deployment/web-terminal -n production
+
+# Or trigger rollback workflow
+gh workflow run deploy.yml -f environment=production -f version=v1.0.0
+```
 
 ---
 

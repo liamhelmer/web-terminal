@@ -1,0 +1,34 @@
+# ZAP Scanning Rules Configuration
+# Format: RULE_ID	THRESHOLD	[COMMENT]
+# THRESHOLD: IGNORE, INFO, WARN, FAIL
+# See: https://www.zaproxy.org/docs/alerts/
+
+# High priority security rules (FAIL on detection)
+10021	FAIL	# X-Content-Type-Options Header Missing
+10023	FAIL	# Information Disclosure - Debug Error Messages
+10027	FAIL	# Information Disclosure - Suspicious Comments
+10036	FAIL	# HTTP Server Response Header
+10038	FAIL	# Content Security Policy (CSP) Header Not Set
+10040	FAIL	# Secure Pages Include Mixed Content
+10054	FAIL	# Cookie without SameSite Attribute
+10055	FAIL	# CSP: Wildcard Directive
+10056	FAIL	# CSP: script-src unsafe-inline
+10057	FAIL	# CSP: script-src unsafe-eval
+10063	FAIL	# Feature Policy Header Not Set (Permissions-Policy)
+10096	FAIL	# Timestamp Disclosure - Unix
+10105	FAIL	# Weak Authentication Method
+
+# Medium priority (WARN)
+10015	WARN	# Re-examine Cache-control Directives
+10017	WARN	# Cross-Domain JavaScript Source File Inclusion
+10020	WARN	# X-Frame-Options Header Not Set
+10098	WARN	# Cross-Domain Misconfiguration
+
+# Low priority (INFO)
+10010	INFO	# Cookie No HttpOnly Flag
+10011	INFO	# Cookie Without Secure Flag
+10049	INFO	# Content Cacheability
+
+# Ignore rules that may cause false positives
+2	IGNORE	# Private IP Disclosure (expected in local development)
+10109	IGNORE	# Modern Web Application (informational)

@@ -1,0 +1,13 @@
+[package]
+name = "xtask"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# xtask is a cargo alias helper
+# Per spec-kit/009-deployment-spec.md
+# Run with: cargo xtask <command>
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+anyhow = "1"

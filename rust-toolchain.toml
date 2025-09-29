@@ -1,0 +1,7 @@
+# Rust toolchain configuration
+# Per spec-kit/003-backend-spec.md - Rust 1.75+
+
+[toolchain]
+channel = "stable"
+profile = "default"
+components = ["rustfmt", "clippy", "rust-src"]

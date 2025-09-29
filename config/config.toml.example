@@ -1,0 +1,56 @@
+# Web-Terminal Configuration
+# Per spec-kit/009-deployment-spec.md
+#
+# Copy this file to config.toml and customize as needed
+
+[server]
+# Single port for all traffic (HTTP, WebSocket, static assets)
+host = "0.0.0.0"
+port = 8080
+max_connections = 10000
+worker_threads = 4  # 0 = number of CPU cores
+
+[session]
+timeout = 1800  # 30 minutes in seconds
+max_sessions_per_user = 10
+workspace_quota = 1073741824  # 1GB in bytes
+max_processes = 10
+
+[security]
+# JWT secret for authentication
+# Generate with: openssl rand -base64 32
+jwt_secret_env = "WEB_TERMINAL_JWT_SECRET"  # Read from environment variable
+
+# Command blacklist (security)
+blacklisted_commands = [
+    "rm -rf /",
+    "dd if=/dev/zero",
+    ":(){ :|:& };:",  # Fork bomb
+    "chmod -R 777 /",
+]
+
+# Path restrictions
+allowed_paths = ["/workspace"]
+denied_paths = ["/etc", "/usr", "/bin", "/sbin", "/var"]
+
+[resources]
+max_memory_per_session = 1073741824  # 1GB
+max_cpu_percent = 80
+max_disk_io = 104857600  # 100MB/s
+
+[logging]
+level = "info"  # debug, info, warn, error
+format = "json"  # json, plain
+output = "stdout"  # stdout, file
+# log_file = "/var/log/web-terminal/app.log"
+
+[monitoring]
+enable_metrics = true
+metrics_path = "/api/v1/metrics"
+enable_tracing = false
+# jaeger_endpoint = "http://localhost:14268/api/traces"
+
+# Optional: TLS Configuration
+# [tls]
+# cert_path = "/path/to/cert.pem"
+# key_path = "/path/to/key.pem"
