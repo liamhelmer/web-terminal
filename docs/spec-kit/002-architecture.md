@@ -547,24 +547,26 @@ pub struct ResourceUsage {
 | Component | Technology | Version | Justification |
 |-----------|-----------|---------|---------------|
 | Language | Rust | 1.75+ | Memory safety, performance, WASM support |
-| Web Framework | Actix-Web | 4.x | Highest performance, WebSocket support |
-| Async Runtime | Tokio | 1.x | Industry standard, mature ecosystem |
+| Web Framework | Actix-Web | 4.11.x | Highest performance, WebSocket support |
+| Async Runtime | Tokio | 1.47.x | Industry standard, mature ecosystem |
 | Serialization | serde + serde_json | 1.x | Fast, type-safe JSON handling |
-| WebSocket | actix-web-actors | 4.x | Native WebSocket integration |
+| WebSocket | actix-web-actors | 4.3.x | Native WebSocket integration |
 | Authentication | jsonwebtoken | 9.x | JWT standard implementation |
 | Logging | tracing + tracing-subscriber | 0.1.x | Structured logging, performance |
-| Metrics | prometheus | 0.13.x | Industry standard monitoring |
-| Testing | tokio-test, mockall | latest | Async testing, mocking |
+| Metrics | prometheus | 0.14.x | Industry standard monitoring |
+| Concurrency | dashmap | 6.1.x | Concurrent HashMap for session storage |
+| Testing | tokio-test, mockall 0.13.x | latest | Async testing, mocking |
 
 ### Frontend Stack
 
 | Component | Technology | Version | Justification |
 |-----------|-----------|---------|---------------|
-| Language | TypeScript | 5.x | Type safety, tooling support |
-| Terminal Emulator | xterm.js | 5.x | Industry standard, feature-rich |
-| Build Tool | Vite | 5.x | Fast builds, modern features |
+| Language | TypeScript | 5.8.x | Type safety, tooling support |
+| Terminal Emulator | xterm.js | 5.3.x | Industry standard, feature-rich |
+| Build Tool | Vite | 7.1.x | Fast builds, modern features |
 | Package Manager | pnpm | 8.x | Fast, disk-efficient |
-| Testing | Vitest | 1.x | Fast, Vite-native |
+| Testing | Vitest | 3.2.x | Fast, Vite-native |
+| E2E Testing | Playwright | 1.55.x | Comprehensive browser testing |
 
 ### DevOps Stack
 

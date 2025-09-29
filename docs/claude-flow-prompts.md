@@ -14,23 +14,23 @@ This document contains standardized prompts for Claude Flow agents working on th
 
 **Backend (Rust):**
 - Language: Rust 1.75+
-- Web Framework: Actix-Web 4.x
-- Async Runtime: Tokio 1.x
-- WebSocket: actix-web-actors 4.x
+- Web Framework: Actix-Web 4.11.x
+- Async Runtime: Tokio 1.47.x
+- WebSocket: actix-web-actors 4.3.x
 - Serialization: serde + serde_json 1.x
 - Authentication: jsonwebtoken 9.x
 - Logging: tracing + tracing-subscriber 0.1.x
-- Metrics: prometheus 0.13.x
-- Testing: tokio-test, mockall
+- Metrics: prometheus 0.14.x
+- Testing: tokio-test, mockall 0.13.x
 - PTY: portable-pty 0.9+
-- Concurrency: dashmap 5.x
+- Concurrency: dashmap 6.1.x
 
 **Frontend (TypeScript):**
-- Language: TypeScript 5.x
-- Terminal Emulator: xterm.js 5.x
-- Build Tool: Vite 5.x
+- Language: TypeScript 5.8.x
+- Terminal Emulator: xterm.js 5.3.x
+- Build Tool: Vite 7.1.x
 - Package Manager: pnpm 8.x
-- Testing: Vitest 1.x, Playwright 1.x
+- Testing: Vitest 3.2.x, Playwright 1.55.x
 
 **DevOps:**
 - Containerization: Docker 24.x
@@ -49,15 +49,15 @@ You are a Backend Developer agent for the web-terminal project.
 
 **Technology Stack (per docs/spec-kit/002-architecture.md):**
 - Rust 1.75+
-- Actix-Web 4.x (HTTP server)
-- actix-web-actors 4.x (WebSocket)
-- Tokio 1.x (async runtime)
+- Actix-Web 4.11.x (HTTP server)
+- actix-web-actors 4.3.x (WebSocket)
+- Tokio 1.47.x (async runtime)
 - serde + serde_json (serialization)
 - jsonwebtoken 9.x (authentication)
 - tracing + tracing-subscriber (logging)
-- prometheus 0.13.x (metrics)
+- prometheus 0.14.x (metrics)
 - portable-pty 0.9+ (terminal emulation)
-- dashmap 5.x (concurrent data structures)
+- dashmap 6.1.x (concurrent data structures)
 
 **Architecture Requirements:**
 - Single-port deployment (default 8080, configurable)
@@ -95,12 +95,12 @@ You are a Backend Developer agent for the web-terminal project.
 You are a Frontend Developer agent for the web-terminal project.
 
 **Technology Stack (per docs/spec-kit/004-frontend-spec.md):**
-- TypeScript 5.x
-- xterm.js 5.x (terminal emulator)
-- Vite 5.x (build tool)
+- TypeScript 5.8.x
+- xterm.js 5.3.x (terminal emulator)
+- Vite 7.1.x (build tool)
 - pnpm 8.x (package manager)
-- Vitest 1.x (unit testing)
-- Playwright 1.x (E2E testing)
+- Vitest 3.2.x (unit testing)
+- Playwright 1.55.x (E2E testing)
 
 **Architecture Requirements:**
 - Single-port architecture (relative URLs only)
@@ -140,13 +140,13 @@ You are a Testing Specialist for the web-terminal project.
 
 **Backend:**
 - tokio-test (async tests)
-- mockall (mocking)
+- mockall 0.13.x (mocking)
 - tempfile (temporary directories)
 - criterion (benchmarking)
 
 **Frontend:**
-- Vitest 1.x (unit tests)
-- Playwright 1.x (E2E tests)
+- Vitest 3.2.x (unit tests)
+- Playwright 1.55.x (E2E tests)
 
 **Testing Requirements:**
 - 80%+ code coverage
@@ -292,8 +292,8 @@ You are a WebSocket Developer for the web-terminal project.
 **WebSocket Protocol (per docs/spec-kit/007-websocket-spec.md):**
 
 **Technologies:**
-- actix-web-actors 4.x
-- Tokio 1.x (async runtime)
+- actix-web-actors 4.3.x
+- Tokio 1.47.x (async runtime)
 - serde + serde_json (message serialization)
 - portable-pty 0.9+ (PTY integration)
 
@@ -346,8 +346,8 @@ You are a PTY Integration specialist for the web-terminal project.
 
 **PTY Technology (per docs/spec-kit/003-backend-spec.md section 3):**
 - portable-pty 0.9+
-- Tokio 1.x (async I/O)
-- dashmap 5.x (PTY registry)
+- Tokio 1.47.x (async I/O)
+- dashmap 6.1.x (PTY registry)
 
 **PTY Requirements:**
 - Cross-platform PTY support
@@ -401,8 +401,8 @@ You are a Session Manager specialist for the web-terminal project.
 **Session Management (per docs/spec-kit/003-backend-spec.md section 2):**
 
 **Technologies:**
-- dashmap 5.x (concurrent HashMap)
-- Tokio 1.x (async)
+- dashmap 6.1.x (concurrent HashMap)
+- Tokio 1.47.x (async)
 - uuid 1.x (session IDs)
 
 **Storage Architecture (per ADR-000):**
