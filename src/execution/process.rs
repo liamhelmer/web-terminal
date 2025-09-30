@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 
-use portable_pty::{CommandBuilder, PtySize, PtySystem, native_pty_system};
+use portable_pty::{native_pty_system, CommandBuilder, PtySize, PtySystem};
 use tokio::sync::RwLock;
 
 use crate::error::{Error, Result};
@@ -63,7 +63,8 @@ impl ProcessManager {
         drop(next_pid);
 
         // Create PTY pair
-        let pair = self.pty_system
+        let pair = self
+            .pty_system
             .openpty(PtySize {
                 rows: 24,
                 cols: 80,
@@ -83,7 +84,9 @@ impl ProcessManager {
         cmd.cwd(working_dir);
 
         // Spawn child process
-        let child = pair.slave.spawn_command(cmd)
+        let child = pair
+            .slave
+            .spawn_command(cmd)
             .map_err(|e| Error::ProcessSpawnFailed(e.to_string()))?;
 
         // Store process info
@@ -128,7 +131,8 @@ impl ProcessManager {
     /// Get process status
     pub async fn get_status(&self, pid: ProcessId) -> Result<ProcessStatus> {
         let processes = self.processes.read().await;
-        processes.get(&pid)
+        processes
+            .get(&pid)
             .map(|info| info.status)
             .ok_or(Error::ProcessNotFound(pid))
     }
@@ -136,7 +140,8 @@ impl ProcessManager {
     /// List all running processes
     pub async fn list_processes(&self) -> Vec<ProcessHandle> {
         let processes = self.processes.read().await;
-        processes.values()
+        processes
+            .values()
             .filter(|info| matches!(info.status, ProcessStatus::Running))
             .map(|info| ProcessHandle {
                 pid: info.pid,

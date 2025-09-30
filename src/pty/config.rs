@@ -42,7 +42,7 @@ impl Default for PtyConfig {
             env,
             shell: ShellConfig::default(),
             max_buffer_size: 1024 * 1024, // 1MB
-            read_timeout_ms: 10, // 10ms for real-time streaming
+            read_timeout_ms: 10,          // 10ms for real-time streaming
         }
     }
 }

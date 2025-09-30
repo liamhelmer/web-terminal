@@ -88,25 +88,19 @@ fn test_completions_bash() {
 #[test]
 fn test_invalid_command() {
     let mut cmd = Command::cargo_bin("web-terminal").unwrap();
-    cmd.arg("invalid-command")
-        .assert()
-        .failure();
+    cmd.arg("invalid-command").assert().failure();
 }
 
 #[test]
 fn test_global_verbose_flag() {
     let mut cmd = Command::cargo_bin("web-terminal").unwrap();
-    cmd.args(&["--verbose", "status"])
-        .assert()
-        .success();
+    cmd.args(&["--verbose", "status"]).assert().success();
 }
 
 #[test]
 fn test_global_quiet_flag() {
     let mut cmd = Command::cargo_bin("web-terminal").unwrap();
-    cmd.args(&["--quiet", "status"])
-        .assert()
-        .success();
+    cmd.args(&["--quiet", "status"]).assert().success();
 }
 
 #[test]

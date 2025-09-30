@@ -6,8 +6,8 @@
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use std::sync::Arc;
 use tokio::runtime::Runtime;
-use web_terminal::session::{SessionConfig, SessionManager, SessionId, UserId};
 use web_terminal::pty::{PtyConfig, PtyManager, ShellConfig};
+use web_terminal::session::{SessionConfig, SessionId, SessionManager, UserId};
 
 /// Benchmark basic session creation
 fn bench_session_creation_basic(c: &mut Criterion) {
@@ -161,7 +161,9 @@ fn bench_session_full_lifecycle(c: &mut Criterion) {
             let session = manager.create_session(user_id).await.unwrap();
 
             // Use (update state)
-            session.set_env("TEST".to_string(), "value".to_string()).await;
+            session
+                .set_env("TEST".to_string(), "value".to_string())
+                .await;
             let _env = session.get_environment().await;
 
             // Destroy

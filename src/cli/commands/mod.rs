@@ -1,6 +1,7 @@
 // CLI command implementations
 // Per spec-kit/005-cli-spec.md
 
+mod completions;
 mod config;
 mod health;
 mod logs;
@@ -8,7 +9,6 @@ mod metrics;
 mod server;
 mod sessions;
 mod users;
-mod completions;
 
 use crate::cli::args::{Cli, Commands};
 use anyhow::Result;
@@ -45,11 +45,7 @@ fn setup_logging(cli: &Cli) {
         "info"
     };
 
-    let filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new(level));
+    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(level));
 
-    fmt()
-        .with_env_filter(filter)
-        .with_target(false)
-        .init();
+    fmt().with_env_filter(filter).with_target(false).init();
 }

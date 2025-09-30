@@ -2,9 +2,9 @@
 // Per spec-kit/008-testing-spec.md - Unit Tests
 // Per spec-kit/003-backend-spec.md section 4.1 - JWT authentication
 
+use std::time::Duration;
 use web_terminal::security::AuthService;
 use web_terminal::session::UserId;
-use std::time::Duration;
 
 /// Test authentication service creation
 #[test]
@@ -118,7 +118,10 @@ fn test_is_token_expired_valid() {
     let is_expired = auth.is_token_expired(&token.access_token);
 
     // Assert
-    assert!(!is_expired, "Token should not be expired immediately after creation");
+    assert!(
+        !is_expired,
+        "Token should not be expired immediately after creation"
+    );
 }
 
 /// Test token expiration check with invalid token
@@ -171,7 +174,11 @@ fn test_token_claims_structure() {
 
     // Assert - token should be a valid JWT with 3 parts
     let parts: Vec<&str> = token.access_token.split('.').collect();
-    assert_eq!(parts.len(), 3, "JWT should have 3 parts (header.payload.signature)");
+    assert_eq!(
+        parts.len(),
+        3,
+        "JWT should have 3 parts (header.payload.signature)"
+    );
 }
 
 /// Test token type is Bearer

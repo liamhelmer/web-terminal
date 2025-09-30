@@ -2,8 +2,8 @@
 // Per spec-kit/008-testing-spec.md - Unit Tests
 // Per spec-kit/007-websocket-spec.md - WebSocket Protocol
 
-use web_terminal::protocol::{ClientMessage, ServerMessage, Signal, ConnectionStatus};
 use serde_json;
+use web_terminal::protocol::{ClientMessage, ConnectionStatus, ServerMessage, Signal};
 
 /// Test ClientMessage::Command serialization
 ///
@@ -34,7 +34,10 @@ fn test_client_command_serialization() {
 #[test]
 fn test_client_resize_serialization() {
     // Arrange
-    let msg = ClientMessage::Resize { cols: 120, rows: 40 };
+    let msg = ClientMessage::Resize {
+        cols: 120,
+        rows: 40,
+    };
 
     // Act
     let json = serde_json::to_string(&msg).expect("Failed to serialize");
@@ -59,7 +62,9 @@ fn test_client_resize_serialization() {
 #[test]
 fn test_client_signal_serialization() {
     // Arrange
-    let msg = ClientMessage::Signal { signal: Signal::SIGINT };
+    let msg = ClientMessage::Signal {
+        signal: Signal::SIGINT,
+    };
 
     // Act
     let json = serde_json::to_string(&msg).expect("Failed to serialize");
@@ -309,7 +314,8 @@ fn test_all_signal_types() {
     for (signal, name) in signals {
         let msg = ClientMessage::Signal { signal };
         let json = serde_json::to_string(&msg).expect(&format!("Failed to serialize {}", name));
-        let parsed: ClientMessage = serde_json::from_str(&json).expect(&format!("Failed to deserialize {}", name));
+        let parsed: ClientMessage =
+            serde_json::from_str(&json).expect(&format!("Failed to deserialize {}", name));
 
         match parsed {
             ClientMessage::Signal { signal: s } => assert_eq!(s as i32, signal as i32),

@@ -6,9 +6,7 @@
 // - Support multiple signing algorithms (RS256, RS384, RS512)
 
 use crate::security::jwks_client::{JwksClient, JwksError, JwksProvider};
-use jsonwebtoken::{
-    decode, decode_header, Algorithm, DecodingKey, TokenData, Validation,
-};
+use jsonwebtoken::{decode, decode_header, Algorithm, DecodingKey, TokenData, Validation};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -61,21 +59,21 @@ pub enum ValidationError {
 /// Per 011-authentication-spec.md section 4.1: Standard Claims
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Claims {
-    pub sub: String,                          // Subject (user identifier)
-    pub iss: String,                          // Issuer
+    pub sub: String, // Subject (user identifier)
+    pub iss: String, // Issuer
     #[serde(default)]
-    pub aud: Audience,                        // Audience (can be string or array)
-    pub exp: i64,                             // Expiration time
-    pub iat: i64,                             // Issued at
+    pub aud: Audience, // Audience (can be string or array)
+    pub exp: i64,    // Expiration time
+    pub iat: i64,    // Issued at
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub nbf: Option<i64>,                     // Not before
+    pub nbf: Option<i64>, // Not before
 
     // Optional Backstage-specific claims
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub ent: Option<Vec<String>>,             // Entity references
+    pub ent: Option<Vec<String>>, // Entity references
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub usc: Option<UserSignInContext>,       // User sign-in context
+    pub usc: Option<UserSignInContext>, // User sign-in context
 
     // Optional custom claims
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -197,8 +195,7 @@ impl JwtValidator {
         // Step 1: Decode header to extract kid and alg
         let header = decode_header(token)?;
 
-        let kid = header.kid.as_ref()
-            .ok_or(ValidationError::MissingKid)?;
+        let kid = header.kid.as_ref().ok_or(ValidationError::MissingKid)?;
 
         // Step 2: Verify algorithm is allowed
         if !self.allowed_algorithms.contains(&header.alg) {
@@ -210,18 +207,16 @@ impl JwtValidator {
         validation_unsafe.insecure_disable_signature_validation();
         validation_unsafe.validate_exp = false;
 
-        let unverified: TokenData<Claims> = decode(
-            token,
-            &DecodingKey::from_secret(&[]),
-            &validation_unsafe,
-        )?;
+        let unverified: TokenData<Claims> =
+            decode(token, &DecodingKey::from_secret(&[]), &validation_unsafe)?;
         let issuer = &unverified.claims.iss;
 
         // Step 4: Find provider by issuer
         let provider = self.find_provider_by_issuer(issuer)?;
 
         // Step 5: Fetch public key via JWKS client
-        let jwk = self.jwks_client
+        let jwk = self
+            .jwks_client
             .get_key(kid, &provider.name)
             .await?
             .ok_or_else(|| ValidationError::KeyNotFound(kid.clone()))?;
@@ -248,7 +243,10 @@ impl JwtValidator {
     }
 
     /// Convert JWK to jsonwebtoken DecodingKey
-    fn jwk_to_decoding_key(&self, jwk: &crate::security::jwks_client::JsonWebKey) -> Result<DecodingKey, ValidationError> {
+    fn jwk_to_decoding_key(
+        &self,
+        jwk: &crate::security::jwks_client::JsonWebKey,
+    ) -> Result<DecodingKey, ValidationError> {
         if jwk.kty != "RSA" {
             return Err(ValidationError::InvalidRsaKey(format!(
                 "Unsupported key type: {}",
@@ -328,10 +326,7 @@ mod tests {
 
     #[test]
     fn test_audience_multiple() {
-        let aud = Audience::Multiple(vec![
-            "web-terminal".to_string(),
-            "backstage".to_string(),
-        ]);
+        let aud = Audience::Multiple(vec!["web-terminal".to_string(), "backstage".to_string()]);
         assert!(aud.contains("web-terminal"));
         assert!(aud.contains("backstage"));
         assert!(!aud.contains("other"));

@@ -36,10 +36,7 @@ impl Default for CorsConfig {
                 "DELETE".to_string(),
                 "OPTIONS".to_string(),
             ],
-            allowed_headers: vec![
-                "Authorization".to_string(),
-                "Content-Type".to_string(),
-            ],
+            allowed_headers: vec!["Authorization".to_string(), "Content-Type".to_string()],
             max_age: 3600,
             supports_credentials: true,
         }
@@ -76,11 +73,10 @@ impl CorsConfig {
         tracing::info!("CORS: Allowed headers: {:?}", self.allowed_headers);
 
         // Expose headers that client can access
-        cors = cors
-            .expose_headers(vec![
-                header::CONTENT_TYPE.as_str(),
-                header::AUTHORIZATION.as_str(),
-            ]);
+        cors = cors.expose_headers(vec![
+            header::CONTENT_TYPE.as_str(),
+            header::AUTHORIZATION.as_str(),
+        ]);
 
         // Set max age for preflight cache
         cors = cors.max_age(self.max_age);
@@ -106,10 +102,7 @@ impl CorsConfig {
                 "DELETE".to_string(),
                 "OPTIONS".to_string(),
             ],
-            allowed_headers: vec![
-                "Authorization".to_string(),
-                "Content-Type".to_string(),
-            ],
+            allowed_headers: vec!["Authorization".to_string(), "Content-Type".to_string()],
             max_age: 3600,
             supports_credentials: true,
         }

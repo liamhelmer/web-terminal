@@ -6,8 +6,8 @@
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use std::sync::Arc;
 use tokio::runtime::Runtime;
-use web_terminal::session::{SessionConfig, SessionManager, UserId};
 use web_terminal::pty::{PtyConfig, PtyManager, ShellConfig};
+use web_terminal::session::{SessionConfig, SessionManager, UserId};
 
 /// Benchmark concurrent session creation at scale
 fn bench_concurrent_sessions_at_scale(c: &mut Criterion) {
@@ -51,9 +51,9 @@ fn bench_concurrent_sessions_at_scale(c: &mut Criterion) {
                         .map(|session| {
                             let manager_clone = Arc::clone(&manager);
                             let session_id = session.id.clone();
-                            tokio::spawn(async move {
-                                manager_clone.destroy_session(&session_id).await
-                            })
+                            tokio::spawn(
+                                async move { manager_clone.destroy_session(&session_id).await },
+                            )
                         })
                         .collect();
 

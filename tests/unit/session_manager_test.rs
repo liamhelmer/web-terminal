@@ -176,9 +176,9 @@ async fn test_cleanup_expired_sessions() {
 // The following tests are now implemented in src/session/manager.rs
 // We include additional edge case tests here
 
-use web_terminal::session::{SessionConfig, SessionManager};
-use web_terminal::session::state::UserId;
 use std::time::Duration;
+use web_terminal::session::state::UserId;
+use web_terminal::session::{SessionConfig, SessionManager};
 
 /// Test touch session updates activity timestamp
 #[tokio::test]
@@ -286,7 +286,10 @@ async fn test_concurrent_session_operations() {
     // Wait for all tasks
     let mut sessions = vec![];
     for handle in handles {
-        let session = handle.await.expect("Task panicked").expect("Failed to create session");
+        let session = handle
+            .await
+            .expect("Task panicked")
+            .expect("Failed to create session");
         sessions.push(session);
     }
 
@@ -297,14 +300,15 @@ async fn test_concurrent_session_operations() {
     for session in sessions {
         let manager_clone = Arc::clone(&manager);
         let session_id = session.id.clone();
-        let handle = tokio::spawn(async move {
-            manager_clone.destroy_session(&session_id).await
-        });
+        let handle = tokio::spawn(async move { manager_clone.destroy_session(&session_id).await });
         destroy_handles.push(handle);
     }
 
     for handle in destroy_handles {
-        handle.await.expect("Task panicked").expect("Failed to destroy session");
+        handle
+            .await
+            .expect("Task panicked")
+            .expect("Failed to destroy session");
     }
 
     assert_eq!(manager.session_count(), 0);

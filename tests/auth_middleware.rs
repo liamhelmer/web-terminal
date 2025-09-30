@@ -28,8 +28,12 @@ fn create_test_claims(exp_offset: i64) -> JwtClaims {
 /// Create test JWT token
 fn create_test_token(secret: &[u8], exp_offset: i64) -> String {
     let claims = create_test_claims(exp_offset);
-    encode(&Header::default(), &claims, &EncodingKey::from_secret(secret))
-        .expect("Failed to encode test token")
+    encode(
+        &Header::default(),
+        &claims,
+        &EncodingKey::from_secret(secret),
+    )
+    .expect("Failed to encode test token")
 }
 
 /// Test endpoint handler
@@ -49,13 +53,11 @@ async fn test_http_endpoint_without_token() {
     let app = test::init_service(
         App::new()
             .wrap(auth_middleware)
-            .route("/protected", web::get().to(protected_endpoint))
+            .route("/protected", web::get().to(protected_endpoint)),
     )
     .await;
 
-    let req = test::TestRequest::get()
-        .uri("/protected")
-        .to_request();
+    let req = test::TestRequest::get().uri("/protected").to_request();
 
     let resp = test::call_service(&app, req).await;
 
@@ -72,7 +74,7 @@ async fn test_http_endpoint_with_invalid_token() {
     let app = test::init_service(
         App::new()
             .wrap(auth_middleware)
-            .route("/protected", web::get().to(protected_endpoint))
+            .route("/protected", web::get().to(protected_endpoint)),
     )
     .await;
 
@@ -97,7 +99,7 @@ async fn test_http_endpoint_with_valid_token() {
     let app = test::init_service(
         App::new()
             .wrap(auth_middleware)
-            .route("/protected", web::get().to(protected_endpoint))
+            .route("/protected", web::get().to(protected_endpoint)),
     )
     .await;
 
@@ -122,7 +124,7 @@ async fn test_http_endpoint_with_expired_token() {
     let app = test::init_service(
         App::new()
             .wrap(auth_middleware)
-            .route("/protected", web::get().to(protected_endpoint))
+            .route("/protected", web::get().to(protected_endpoint)),
     )
     .await;
 
@@ -192,6 +194,8 @@ fn test_user_context_extraction() {
 
     assert_eq!(context.user_id.as_str(), "user:default/test");
     assert_eq!(context.groups.len(), 1);
-    assert!(context.groups.contains(&"group:default/developers".to_string()));
+    assert!(context
+        .groups
+        .contains(&"group:default/developers".to_string()));
     assert_eq!(context.provider, "https://test.example.com");
 }

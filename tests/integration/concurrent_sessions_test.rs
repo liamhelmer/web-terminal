@@ -35,7 +35,9 @@ async fn test_multiple_user_sessions() {
     // 2. Execute different commands in each session (add to history)
     for (i, session) in sessions.iter().enumerate() {
         session.add_to_history(format!("command_{}", i)).await;
-        session.set_env("SESSION_INDEX".to_string(), i.to_string()).await;
+        session
+            .set_env("SESSION_INDEX".to_string(), i.to_string())
+            .await;
     }
 
     // 3 & 4. Verify isolation between sessions
@@ -88,7 +90,9 @@ async fn test_multi_user_concurrent_sessions() {
     // 2. Execute commands concurrently (add to history)
     for (i, (user_id, session)) in user_sessions.iter().enumerate() {
         session.add_to_history(format!("user_{}_command", i)).await;
-        session.set_env("USER_INDEX".to_string(), i.to_string()).await;
+        session
+            .set_env("USER_INDEX".to_string(), i.to_string())
+            .await;
     }
 
     // 3. Verify isolation between users
@@ -132,7 +136,9 @@ async fn test_session_isolation() {
         .expect("Failed to create session 2");
 
     // 2. Set environment variable in session 1
-    session1.set_env("CUSTOM_VAR".to_string(), "session1_value".to_string()).await;
+    session1
+        .set_env("CUSTOM_VAR".to_string(), "session1_value".to_string())
+        .await;
     session1.add_to_history("ls /secret".to_string()).await;
 
     // 3. Verify session 2 doesn't see session 1's environment
@@ -143,7 +149,9 @@ async fn test_session_isolation() {
     );
 
     // 4. Set different environment in session 2
-    session2.set_env("CUSTOM_VAR".to_string(), "session2_value".to_string()).await;
+    session2
+        .set_env("CUSTOM_VAR".to_string(), "session2_value".to_string())
+        .await;
     session2.add_to_history("pwd".to_string()).await;
 
     // 5. Verify both sessions maintain their own state

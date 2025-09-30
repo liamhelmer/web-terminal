@@ -21,7 +21,9 @@ fn main() {
     if profile == "release" {
         build_frontend();
     } else {
-        println!("cargo:warning=Skipping frontend build in debug mode (use 'pnpm run build' manually)");
+        println!(
+            "cargo:warning=Skipping frontend build in debug mode (use 'pnpm run build' manually)"
+        );
     }
 
     // Generate build metadata
@@ -32,9 +34,7 @@ fn build_frontend() {
     println!("cargo:warning=Building frontend...");
 
     // Check if pnpm is installed
-    let pnpm_check = Command::new("pnpm")
-        .arg("--version")
-        .output();
+    let pnpm_check = Command::new("pnpm").arg("--version").output();
 
     if pnpm_check.is_err() {
         println!("cargo:warning=pnpm not found, skipping frontend build");

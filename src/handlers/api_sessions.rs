@@ -40,10 +40,15 @@ pub async fn create_session(
         id: session.id.to_string(),
         user_id: session.user_id.to_string(),
         created_at: chrono::DateTime::<Utc>::from(
-            std::time::SystemTime::UNIX_EPOCH + session.created_at.elapsed()
-        ).to_rfc3339(),
+            std::time::SystemTime::UNIX_EPOCH + session.created_at.elapsed(),
+        )
+        .to_rfc3339(),
         state: SessionState {
-            working_dir: session.get_working_dir().await.to_string_lossy().to_string(),
+            working_dir: session
+                .get_working_dir()
+                .await
+                .to_string_lossy()
+                .to_string(),
             environment: session.get_environment().await,
             processes: vec![],
         },
@@ -83,13 +88,19 @@ pub async fn get_session(
         id: session.id.to_string(),
         user_id: session.user_id.to_string(),
         created_at: chrono::DateTime::<Utc>::from(
-            std::time::SystemTime::UNIX_EPOCH + session.created_at.elapsed()
-        ).to_rfc3339(),
+            std::time::SystemTime::UNIX_EPOCH + session.created_at.elapsed(),
+        )
+        .to_rfc3339(),
         last_activity: chrono::DateTime::<Utc>::from(
-            std::time::SystemTime::UNIX_EPOCH + session.last_activity.elapsed()
-        ).to_rfc3339(),
+            std::time::SystemTime::UNIX_EPOCH + session.last_activity.elapsed(),
+        )
+        .to_rfc3339(),
         state: SessionState {
-            working_dir: session.get_working_dir().await.to_string_lossy().to_string(),
+            working_dir: session
+                .get_working_dir()
+                .await
+                .to_string_lossy()
+                .to_string(),
             environment: session.get_environment().await,
             processes: vec![],
         },
@@ -143,11 +154,13 @@ pub async fn list_sessions(
             id: s.id.to_string(),
             user_id: s.user_id.to_string(),
             created_at: chrono::DateTime::<Utc>::from(
-                std::time::SystemTime::UNIX_EPOCH + s.created_at.elapsed()
-            ).to_rfc3339(),
+                std::time::SystemTime::UNIX_EPOCH + s.created_at.elapsed(),
+            )
+            .to_rfc3339(),
             last_activity: chrono::DateTime::<Utc>::from(
-                std::time::SystemTime::UNIX_EPOCH + s.last_activity.elapsed()
-            ).to_rfc3339(),
+                std::time::SystemTime::UNIX_EPOCH + s.last_activity.elapsed(),
+            )
+            .to_rfc3339(),
         })
         .collect();
 
@@ -239,8 +252,11 @@ pub async fn get_session_history(
         .enumerate()
         .map(|(i, cmd)| HistoryEntry {
             timestamp: chrono::DateTime::<Utc>::from(
-                std::time::SystemTime::UNIX_EPOCH + session.created_at.elapsed() + std::time::Duration::from_secs(i as u64)
-            ).to_rfc3339(),
+                std::time::SystemTime::UNIX_EPOCH
+                    + session.created_at.elapsed()
+                    + std::time::Duration::from_secs(i as u64),
+            )
+            .to_rfc3339(),
             command: cmd.clone(),
             exit_code: None,
         })

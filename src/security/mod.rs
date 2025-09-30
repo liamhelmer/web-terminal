@@ -12,5 +12,5 @@ pub use auth::{Claims, JwtValidator, ValidatedToken, ValidationError};
 pub use authorization::{
     AuthorizationError, AuthorizationService, Permission, PermissionRules, Role,
 };
-pub use jwks_client::{JwksClient, JwksError, JwksProvider, JsonWebKey};
-pub use jwt_validator::{UserSignInContext};
+pub use jwks_client::{JsonWebKey, JwksClient, JwksError, JwksProvider};
+pub use jwt_validator::UserSignInContext;

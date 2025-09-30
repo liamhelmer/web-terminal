@@ -208,10 +208,7 @@ fn default_cors_methods() -> Vec<String> {
 }
 
 fn default_cors_headers() -> Vec<String> {
-    vec![
-        "Authorization".to_string(),
-        "Content-Type".to_string(),
-    ]
+    vec!["Authorization".to_string(), "Content-Type".to_string()]
 }
 
 fn default_cors_max_age() -> usize {
@@ -277,7 +274,8 @@ fn default_enable_csp() -> bool {
 }
 
 fn default_csp_policy() -> String {
-    "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'".to_string()
+    "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
+        .to_string()
 }
 
 fn default_enable_frame_options() -> bool {

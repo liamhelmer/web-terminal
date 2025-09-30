@@ -66,10 +66,7 @@ async fn test_session_lifecycle() {
         .await
         .expect("Failed to destroy session");
 
-    pty_manager
-        .kill(&pty_id)
-        .await
-        .expect("Failed to kill PTY");
+    pty_manager.kill(&pty_id).await.expect("Failed to kill PTY");
 
     // Verify cleanup
     assert_eq!(session_manager.session_count(), 0);
@@ -94,8 +91,12 @@ async fn test_session_reconnection() {
     let session_id = session.id.clone();
 
     // 2. Store some state in session
-    session.add_to_history("echo 'first command'".to_string()).await;
-    session.set_env("TEST_VAR".to_string(), "test_value".to_string()).await;
+    session
+        .add_to_history("echo 'first command'".to_string())
+        .await;
+    session
+        .set_env("TEST_VAR".to_string(), "test_value".to_string())
+        .await;
 
     // 3. Simulate disconnection (just drop the reference)
     drop(session);
@@ -161,9 +162,15 @@ async fn test_multiple_concurrent_sessions() {
     session3.add_to_history("whoami".to_string()).await;
 
     // Set different environment variables
-    session1.set_env("SESSION".to_string(), "1".to_string()).await;
-    session2.set_env("SESSION".to_string(), "2".to_string()).await;
-    session3.set_env("SESSION".to_string(), "3".to_string()).await;
+    session1
+        .set_env("SESSION".to_string(), "1".to_string())
+        .await;
+    session2
+        .set_env("SESSION".to_string(), "2".to_string())
+        .await;
+    session3
+        .set_env("SESSION".to_string(), "3".to_string())
+        .await;
 
     // 3. Verify isolation between sessions
     let env1 = session1.get_environment().await;
@@ -229,10 +236,7 @@ async fn test_terminal_resize() {
     // succeeded without error
 
     // 4. Cleanup
-    pty_manager
-        .kill(&pty_id)
-        .await
-        .expect("Failed to kill PTY");
+    pty_manager.kill(&pty_id).await.expect("Failed to kill PTY");
 }
 
 /// Test process signal handling (SIGTERM via kill)
@@ -260,10 +264,7 @@ async fn test_process_signals() {
     sleep(Duration::from_millis(100)).await;
 
     // 3. Send kill signal (equivalent to SIGTERM)
-    pty_manager
-        .kill(&pty_id)
-        .await
-        .expect("Failed to kill PTY");
+    pty_manager.kill(&pty_id).await.expect("Failed to kill PTY");
 
     // Verify PTY is killed (subsequent operations should fail)
     let result = pty_manager.create_writer(&pty_id);
@@ -360,13 +361,7 @@ async fn test_command_history() {
         .expect("Failed to create session");
 
     // Execute multiple commands
-    let commands = vec![
-        "ls -la",
-        "cd /tmp",
-        "pwd",
-        "echo 'hello'",
-        "cat file.txt",
-    ];
+    let commands = vec!["ls -la", "cd /tmp", "pwd", "echo 'hello'", "cat file.txt"];
 
     for cmd in &commands {
         session.add_to_history(cmd.to_string()).await;

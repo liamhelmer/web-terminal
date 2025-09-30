@@ -11,16 +11,32 @@ pub async fn execute(args: HealthArgs) -> Result<()> {
         healthy: true,
         uptime_seconds: 0,
         checks: vec![
-            Check { name: "server".to_string(), status: "unknown".to_string() },
-            Check { name: "sessions".to_string(), status: "unknown".to_string() },
-            Check { name: "memory".to_string(), status: "unknown".to_string() },
+            Check {
+                name: "server".to_string(),
+                status: "unknown".to_string(),
+            },
+            Check {
+                name: "sessions".to_string(),
+                status: "unknown".to_string(),
+            },
+            Check {
+                name: "memory".to_string(),
+                status: "unknown".to_string(),
+            },
         ],
     };
 
     if args.json {
         println!("{}", serde_json::to_string_pretty(&health)?);
     } else {
-        println!("\nOverall: {}", if health.healthy { "✅ healthy" } else { "❌ unhealthy" });
+        println!(
+            "\nOverall: {}",
+            if health.healthy {
+                "✅ healthy"
+            } else {
+                "❌ unhealthy"
+            }
+        );
 
         if args.verbose {
             println!("\nComponent Status:");

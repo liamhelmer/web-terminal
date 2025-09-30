@@ -11,7 +11,7 @@ pub mod websocket_rate_limit;
 pub use auth::{JwtAuthMiddleware, UserContext};
 pub use cors::CorsConfig;
 pub use rate_limit::{RateLimitConfig, RateLimitMetrics, RateLimitMiddleware};
-pub use security_headers::{SecurityHeadersMiddleware, SecurityHeadersConfig};
+pub use security_headers::{SecurityHeadersConfig, SecurityHeadersMiddleware};
 pub use websocket_rate_limit::{
     RateLimitResult, RateLimitWarning, RateLimitedWebSocket, WebSocketRateLimitConfig,
     WebSocketRateLimiter,

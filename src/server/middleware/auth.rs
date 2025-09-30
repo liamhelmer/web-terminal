@@ -130,13 +130,10 @@ where
                 })?;
 
             // Validate JWT token using JWKS
-            let validated = validator
-                .validate(auth_header)
-                .await
-                .map_err(|e| {
-                    tracing::warn!("JWT validation failed: {}", e);
-                    actix_web::error::ErrorUnauthorized(format!("Invalid token: {}", e))
-                })?;
+            let validated = validator.validate(auth_header).await.map_err(|e| {
+                tracing::warn!("JWT validation failed: {}", e);
+                actix_web::error::ErrorUnauthorized(format!("Invalid token: {}", e))
+            })?;
 
             // Create user context
             let user_context = UserContext::from_claims(validated.claims, validated.provider);

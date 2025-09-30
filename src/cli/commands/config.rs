@@ -1,8 +1,10 @@
 // Configuration commands
 // Per spec-kit/005-cli-spec.md
 
-use crate::cli::args::{ConfigCommands, ConfigShowArgs, ConfigSetArgs, ConfigValidateArgs, ConfigFormat};
-use anyhow::{Result, Context};
+use crate::cli::args::{
+    ConfigCommands, ConfigFormat, ConfigSetArgs, ConfigShowArgs, ConfigValidateArgs,
+};
+use anyhow::{Context, Result};
 use std::path::PathBuf;
 
 pub async fn execute(cmd: ConfigCommands, config_path: Option<PathBuf>) -> Result<()> {
@@ -68,7 +70,10 @@ async fn set(args: ConfigSetArgs) -> Result<()> {
 }
 
 async fn validate(args: ConfigValidateArgs, config_path: Option<PathBuf>) -> Result<()> {
-    let path = args.file.or(config_path).unwrap_or_else(|| PathBuf::from("config.toml"));
+    let path = args
+        .file
+        .or(config_path)
+        .unwrap_or_else(|| PathBuf::from("config.toml"));
 
     println!("🔍 Validating configuration: {}", path.display());
 

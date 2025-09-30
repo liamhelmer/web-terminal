@@ -47,9 +47,8 @@ pub struct WebSocketRateLimiter {
 
 impl WebSocketRateLimiter {
     pub fn new(config: WebSocketRateLimitConfig) -> Self {
-        let quota = Quota::per_second(
-            std::num::NonZeroU32::new(config.max_messages_per_second).unwrap(),
-        );
+        let quota =
+            Quota::per_second(std::num::NonZeroU32::new(config.max_messages_per_second).unwrap());
 
         Self {
             config,
@@ -66,7 +65,9 @@ impl WebSocketRateLimiter {
             Ok(_) => {
                 // Reset violations if grace period has passed
                 if let Some(last_violation) = self.last_violation {
-                    if last_violation.elapsed() > Duration::from_secs(self.config.grace_period_seconds) {
+                    if last_violation.elapsed()
+                        > Duration::from_secs(self.config.grace_period_seconds)
+                    {
                         self.violations = 0;
                         self.warning_sent = false;
                     }
@@ -152,7 +153,11 @@ impl RateLimitedWebSocket {
         }
     }
 
-    fn handle_rate_limit_result(&mut self, result: RateLimitResult, ctx: &mut ws::WebsocketContext<Self>) {
+    fn handle_rate_limit_result(
+        &mut self,
+        result: RateLimitResult,
+        ctx: &mut ws::WebsocketContext<Self>,
+    ) {
         match result {
             RateLimitResult::Allowed => {
                 // Message processing allowed
@@ -161,7 +166,10 @@ impl RateLimitedWebSocket {
                 // Drop message silently (client is sending too fast)
                 debug!("WebSocket message throttled");
             }
-            RateLimitResult::Warning { violations, max_violations } => {
+            RateLimitResult::Warning {
+                violations,
+                max_violations,
+            } => {
                 // Send warning to client
                 warn!(
                     "Sending rate limit warning to client ({}/{})",

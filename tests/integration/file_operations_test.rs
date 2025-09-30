@@ -67,8 +67,12 @@ async fn test_workspace_isolation() {
     assert_eq!(workspace1, workspace2); // Same user, same base workspace
 
     // But session states should be isolated
-    session1.set_env("FILE_VAR".to_string(), "file1".to_string()).await;
-    session2.set_env("FILE_VAR".to_string(), "file2".to_string()).await;
+    session1
+        .set_env("FILE_VAR".to_string(), "file1".to_string())
+        .await;
+    session2
+        .set_env("FILE_VAR".to_string(), "file2".to_string())
+        .await;
 
     let env1 = session1.get_environment().await;
     let env2 = session2.get_environment().await;
@@ -164,8 +168,8 @@ async fn test_path_traversal_prevention() {
 /// Per FR-1.3.1: Support file operations
 #[tokio::test]
 async fn test_file_read_operations() {
-    use web_terminal::pty::PtyManager;
     use tokio::time::{sleep, Duration};
+    use web_terminal::pty::PtyManager;
 
     let pty_manager = PtyManager::with_defaults();
 
@@ -201,10 +205,7 @@ async fn test_file_read_operations() {
     // Full integration testing with output capture will be done through WebSocket
 
     // Cleanup
-    pty_manager
-        .kill(&pty_id)
-        .await
-        .expect("Failed to kill PTY");
+    pty_manager.kill(&pty_id).await.expect("Failed to kill PTY");
 }
 
 /// Test workspace quota (basic validation)
@@ -257,7 +258,9 @@ async fn test_session_filesystem_cleanup() {
 
     // Store some state
     session.add_to_history("test command".to_string()).await;
-    session.set_env("TEST".to_string(), "value".to_string()).await;
+    session
+        .set_env("TEST".to_string(), "value".to_string())
+        .await;
 
     // Destroy session (should cleanup filesystem)
     session_manager

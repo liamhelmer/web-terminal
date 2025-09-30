@@ -38,13 +38,13 @@ pub enum JwksError {
 /// Per 011-authentication-spec.md section 2.1
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JsonWebKey {
-    pub kid: String,       // Key ID
-    pub kty: String,       // Key Type (RSA, EC, etc.)
-    pub alg: String,       // Algorithm (RS256, RS384, etc.)
+    pub kid: String, // Key ID
+    pub kty: String, // Key Type (RSA, EC, etc.)
+    pub alg: String, // Algorithm (RS256, RS384, etc.)
     #[serde(rename = "use")]
-    pub use_: String,      // Public key use (sig, enc)
-    pub n: String,         // RSA modulus (base64url encoded)
-    pub e: String,         // RSA exponent (base64url encoded)
+    pub use_: String, // Public key use (sig, enc)
+    pub n: String,   // RSA modulus (base64url encoded)
+    pub e: String,   // RSA exponent (base64url encoded)
 }
 
 /// JWKS response from provider
@@ -96,7 +96,7 @@ impl JwksClient {
             .into_iter()
             .map(|p| JwksProvider {
                 name: p.name,
-                jwks_url: p.url,  // Config field is 'url'
+                jwks_url: p.url, // Config field is 'url'
                 issuer: p.issuer,
                 cache_ttl: auth_config.validation.cache_ttl(),
             })
@@ -131,8 +131,12 @@ impl JwksClient {
     }
 
     /// Fetch JWKS from provider's HTTP endpoint
-    async fn fetch_keys_from_provider(&self, provider_name: &str) -> Result<Vec<JsonWebKey>, JwksError> {
-        let provider = self.providers
+    async fn fetch_keys_from_provider(
+        &self,
+        provider_name: &str,
+    ) -> Result<Vec<JsonWebKey>, JwksError> {
+        let provider = self
+            .providers
             .iter()
             .find(|p| p.name == provider_name)
             .ok_or_else(|| JwksError::ProviderNotConfigured(provider_name.to_string()))?;
@@ -143,10 +147,7 @@ impl JwksClient {
             "Fetching JWKS from provider"
         );
 
-        let response = self.http_client
-            .get(&provider.jwks_url)
-            .send()
-            .await?;
+        let response = self.http_client.get(&provider.jwks_url).send().await?;
 
         if !response.status().is_success() {
             return Err(JwksError::InvalidResponse(format!(
@@ -182,7 +183,11 @@ impl JwksClient {
 
     /// Get a specific key by kid
     /// Per 011-authentication-spec.md section 2.1: JWKS Client
-    pub async fn get_key(&self, kid: &str, provider_name: &str) -> Result<Option<JsonWebKey>, JwksError> {
+    pub async fn get_key(
+        &self,
+        kid: &str,
+        provider_name: &str,
+    ) -> Result<Option<JsonWebKey>, JwksError> {
         let keys = self.fetch_keys(provider_name).await?;
 
         Ok(keys.into_iter().find(|key| key.kid == kid))

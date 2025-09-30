@@ -27,10 +27,7 @@ impl PtyReader {
     /// Start streaming output to a channel
     ///
     /// Per NFR-1.1.2: WebSocket message latency < 20ms (p95)
-    pub async fn stream_output(
-        self,
-        tx: mpsc::UnboundedSender<Vec<u8>>,
-    ) -> PtyResult<()> {
+    pub async fn stream_output(self, tx: mpsc::UnboundedSender<Vec<u8>>) -> PtyResult<()> {
         let handle_id = self.handle.id().to_string();
         let buffer_size = self.buffer_size;
 
@@ -90,13 +87,9 @@ impl PtyReader {
             return Err(PtyError::AlreadyClosed);
         }
 
-        let mut reader = inner
-            .get_reader()
-            .map_err(|e| PtyError::IoError(e))?;
+        let mut reader = inner.get_reader().map_err(|e| PtyError::IoError(e))?;
 
-        reader
-            .read(buf)
-            .map_err(|e| PtyError::IoError(e))
+        reader.read(buf).map_err(|e| PtyError::IoError(e))
     }
 }
 
@@ -132,21 +125,19 @@ impl PtyWriter {
         // Spawn blocking task for writing
         let data = data.to_vec();
         let result = tokio::task::spawn_blocking(move || -> PtyResult<usize> {
-            let n = writer
-                .write(&data)
-                .map_err(|e| PtyError::IoError(e))?;
+            let n = writer.write(&data).map_err(|e| PtyError::IoError(e))?;
 
-            writer
-                .flush()
-                .map_err(|e| PtyError::IoError(e))?;
+            writer.flush().map_err(|e| PtyError::IoError(e))?;
 
             Ok(n)
         })
         .await
-        .map_err(|e| PtyError::IoError(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            format!("Task join error: {}", e),
-        )))??;
+        .map_err(|e| {
+            PtyError::IoError(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!("Task join error: {}", e),
+            ))
+        })??;
 
         Ok(result)
     }
@@ -165,17 +156,11 @@ impl PtyWriter {
             return Err(PtyError::AlreadyClosed);
         }
 
-        let mut writer = inner
-            .get_writer()
-            .map_err(|e| PtyError::IoError(e))?;
+        let mut writer = inner.get_writer().map_err(|e| PtyError::IoError(e))?;
 
-        let n = writer
-            .write(data)
-            .map_err(|e| PtyError::IoError(e))?;
+        let n = writer.write(data).map_err(|e| PtyError::IoError(e))?;
 
-        writer
-            .flush()
-            .map_err(|e| PtyError::IoError(e))?;
+        writer.flush().map_err(|e| PtyError::IoError(e))?;
 
         Ok(n)
     }

@@ -8,5 +8,5 @@ pub mod registry;
 pub mod state;
 
 pub use manager::{SessionConfig, SessionManager};
-pub use state::{ProcessHandle, ProcessId, Session, SessionId, SessionState, UserId};
 pub use registry::SessionRegistry;
+pub use state::{ProcessHandle, ProcessId, Session, SessionId, SessionState, UserId};

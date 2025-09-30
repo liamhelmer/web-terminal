@@ -16,9 +16,7 @@ static START_TIME: once_cell::sync::Lazy<Instant> = once_cell::sync::Lazy::new(I
 ///
 /// Per docs/spec-kit/006-api-spec.md - Health Check
 /// No authentication required (public endpoint)
-pub async fn health_check(
-    session_manager: web::Data<Arc<SessionManager>>,
-) -> Result<HttpResponse> {
+pub async fn health_check(session_manager: web::Data<Arc<SessionManager>>) -> Result<HttpResponse> {
     let uptime_seconds = START_TIME.elapsed().as_secs();
 
     // Check session manager health

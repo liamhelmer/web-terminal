@@ -143,12 +143,10 @@ pub struct RateLimitMiddleware {
 
 impl RateLimitMiddleware {
     pub fn new(config: RateLimitConfig) -> Self {
-        let ip_quota = Quota::per_minute(
-            std::num::NonZeroU32::new(config.ip_requests_per_minute).unwrap(),
-        );
-        let user_quota = Quota::per_hour(
-            std::num::NonZeroU32::new(config.user_requests_per_hour).unwrap(),
-        );
+        let ip_quota =
+            Quota::per_minute(std::num::NonZeroU32::new(config.ip_requests_per_minute).unwrap());
+        let user_quota =
+            Quota::per_hour(std::num::NonZeroU32::new(config.user_requests_per_hour).unwrap());
 
         Self {
             config,
@@ -310,7 +308,15 @@ where
                         req.request().clone(),
                         HttpResponse::TooManyRequests()
                             .insert_header(("X-RateLimit-Reset", reset_secs.to_string()))
-                            .insert_header(("Retry-After", (reset_secs - SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs()).to_string()))
+                            .insert_header((
+                                "Retry-After",
+                                (reset_secs
+                                    - SystemTime::now()
+                                        .duration_since(SystemTime::UNIX_EPOCH)
+                                        .unwrap()
+                                        .as_secs())
+                                .to_string(),
+                            ))
                             .json(serde_json::json!({
                                 "error": "Rate limit exceeded - temporary lockout",
                                 "reset_at": reset_secs
@@ -361,7 +367,10 @@ where
                         return Ok(ServiceResponse::new(
                             req.request().clone(),
                             HttpResponse::TooManyRequests()
-                                .insert_header(("X-RateLimit-Limit", config.ip_requests_per_minute.to_string()))
+                                .insert_header((
+                                    "X-RateLimit-Limit",
+                                    config.ip_requests_per_minute.to_string(),
+                                ))
                                 .insert_header(("X-RateLimit-Remaining", "0"))
                                 .insert_header(("X-RateLimit-Reset", reset_secs.to_string()))
                                 .insert_header(("Retry-After", "60"))
@@ -401,7 +410,15 @@ where
                         req.request().clone(),
                         HttpResponse::TooManyRequests()
                             .insert_header(("X-RateLimit-Reset", reset_secs.to_string()))
-                            .insert_header(("Retry-After", (reset_secs - SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs()).to_string()))
+                            .insert_header((
+                                "Retry-After",
+                                (reset_secs
+                                    - SystemTime::now()
+                                        .duration_since(SystemTime::UNIX_EPOCH)
+                                        .unwrap()
+                                        .as_secs())
+                                .to_string(),
+                            ))
                             .json(serde_json::json!({
                                 "error": "Rate limit exceeded - temporary lockout",
                                 "reset_at": reset_secs
@@ -452,7 +469,10 @@ where
                         return Ok(ServiceResponse::new(
                             req.request().clone(),
                             HttpResponse::TooManyRequests()
-                                .insert_header(("X-RateLimit-Limit", config.user_requests_per_hour.to_string()))
+                                .insert_header((
+                                    "X-RateLimit-Limit",
+                                    config.user_requests_per_hour.to_string(),
+                                ))
                                 .insert_header(("X-RateLimit-Remaining", "0"))
                                 .insert_header(("X-RateLimit-Reset", reset_secs.to_string()))
                                 .insert_header(("Retry-After", "3600"))

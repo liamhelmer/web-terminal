@@ -1,8 +1,8 @@
 // Server management commands
 // Per spec-kit/005-cli-spec.md
 
-use crate::cli::args::{StartArgs, StopArgs, RestartArgs, StatusArgs};
-use anyhow::{Result, Context};
+use crate::cli::args::{RestartArgs, StartArgs, StatusArgs, StopArgs};
+use anyhow::{Context, Result};
 use std::path::PathBuf;
 
 pub async fn start(args: StartArgs, config_path: Option<PathBuf>) -> Result<()> {
@@ -34,7 +34,7 @@ pub async fn start(args: StartArgs, config_path: Option<PathBuf>) -> Result<()> 
 
     use crate::config::Config as ServerConfig;
     use crate::server::Server;
-    use crate::session::{SessionManager, SessionConfig};
+    use crate::session::{SessionConfig, SessionManager};
 
     // Load server configuration
     let server_config = ServerConfig::default();
@@ -48,8 +48,14 @@ pub async fn start(args: StartArgs, config_path: Option<PathBuf>) -> Result<()> 
     let server = Server::new(server_config, session_manager);
 
     println!("✅ Server started on {}:{}", config.host, config.port);
-    println!("📡 WebSocket endpoint: ws://{}:{}/ws", config.host, config.port);
-    println!("💚 Health check: http://{}:{}/api/v1/health", config.host, config.port);
+    println!(
+        "📡 WebSocket endpoint: ws://{}:{}/ws",
+        config.host, config.port
+    );
+    println!(
+        "💚 Health check: http://{}:{}/api/v1/health",
+        config.host, config.port
+    );
     println!("\n🔐 External JWT authentication enabled (JWKS-based)");
     println!("⚠️  Configure JWKS providers in config file");
     println!("\n🛑 Press Ctrl+C to stop");
@@ -103,7 +109,10 @@ pub async fn status(args: StatusArgs) -> Result<()> {
         println!("{}", serde_json::to_string_pretty(&status)?);
     } else {
         println!("📊 Server Status");
-        println!("  Running: {}", if status.running { "✅ yes" } else { "❌ no" });
+        println!(
+            "  Running: {}",
+            if status.running { "✅ yes" } else { "❌ no" }
+        );
         if let Some(uptime) = status.uptime {
             println!("  Uptime: {}", format_duration(uptime));
         }

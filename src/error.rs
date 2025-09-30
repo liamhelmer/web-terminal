@@ -118,7 +118,10 @@ impl Error {
             Error::Unauthorized | Error::Forbidden(_) => 403,
             Error::ValidationError(_) => 422,
             Error::Io(_) | Error::Internal(_) | Error::PtyError(_) => 500,
-            Error::ProcessSpawnFailed(_) | Error::WebSocketError(_) | Error::ExecutionFailed(_) | Error::Other(_) => 500,
+            Error::ProcessSpawnFailed(_)
+            | Error::WebSocketError(_)
+            | Error::ExecutionFailed(_)
+            | Error::Other(_) => 500,
         }
     }
 
@@ -162,9 +165,7 @@ impl actix_web::ResponseError for Error {
             Error::InvalidCommand(_) | Error::CommandNotAllowed(_) | Error::EmptyCommand => {
                 ErrorResponse::validation_error(format!("Command error: {}", self))
             }
-            Error::AuthenticationFailed | Error::InvalidToken => {
-                ErrorResponse::jwt_invalid()
-            }
+            Error::AuthenticationFailed | Error::InvalidToken => ErrorResponse::jwt_invalid(),
             Error::Unauthorized => ErrorResponse::unauthorized_user("unknown", vec![]),
             Error::NotFound(msg) => ErrorResponse::not_found(msg),
             Error::Forbidden(msg) => ErrorResponse::forbidden(msg),
@@ -172,8 +173,10 @@ impl actix_web::ResponseError for Error {
             _ => ErrorResponse::internal_error(),
         };
 
-        actix_web::HttpResponse::build(actix_web::http::StatusCode::from_u16(self.status_code()).unwrap())
-            .json(error_response)
+        actix_web::HttpResponse::build(
+            actix_web::http::StatusCode::from_u16(self.status_code()).unwrap(),
+        )
+        .json(error_response)
     }
 
     fn status_code(&self) -> actix_web::http::StatusCode {
@@ -193,7 +196,10 @@ mod tests {
 
     #[test]
     fn test_status_codes() {
-        assert_eq!(Error::SessionNotFound("test".to_string()).status_code(), 404);
+        assert_eq!(
+            Error::SessionNotFound("test".to_string()).status_code(),
+            404
+        );
         assert_eq!(Error::AuthenticationFailed.status_code(), 401);
         assert_eq!(Error::InvalidCommand("test".to_string()).status_code(), 400);
     }

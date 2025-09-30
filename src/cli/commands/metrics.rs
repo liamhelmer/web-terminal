@@ -6,7 +6,10 @@ use anyhow::Result;
 
 pub async fn execute(args: MetricsArgs) -> Result<()> {
     if args.watch {
-        println!("📊 Watching metrics (interval: {}s, Ctrl+C to exit)...", args.interval);
+        println!(
+            "📊 Watching metrics (interval: {}s, Ctrl+C to exit)...",
+            args.interval
+        );
         println!("\n⚠️  Watch mode not yet implemented");
         return Ok(());
     }

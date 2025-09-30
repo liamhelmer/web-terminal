@@ -6,15 +6,15 @@
 // - FR-3.3: Real-time streaming (<20ms latency)
 // - NFR-1.1: Command execution latency < 100ms (p95)
 
-mod manager;
-mod process;
 mod config;
 mod io_handler;
+mod manager;
+mod process;
 
-pub use manager::PtyManager;
-pub use process::{PtyProcess, PtyProcessHandle};
 pub use config::{PtyConfig, ShellConfig};
 pub use io_handler::{PtyReader, PtyWriter};
+pub use manager::PtyManager;
+pub use process::{PtyProcess, PtyProcessHandle};
 
 use thiserror::Error;
 

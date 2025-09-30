@@ -191,7 +191,10 @@ async fn test_session_not_found_error() {
 
     // Try to destroy non-existent session
     let result = session_manager.destroy_session(&invalid_id).await;
-    assert!(result.is_err(), "Should fail to destroy non-existent session");
+    assert!(
+        result.is_err(),
+        "Should fail to destroy non-existent session"
+    );
 }
 
 /// Test concurrent session operations error handling
@@ -234,10 +237,7 @@ async fn test_concurrent_error_handling() {
     }
 
     // Should have max_sessions_per_user successes and rest failures
-    assert_eq!(
-        successful, 5,
-        "Should have exactly 5 successful sessions"
-    );
+    assert_eq!(successful, 5, "Should have exactly 5 successful sessions");
     assert_eq!(failed, 5, "Should have 5 failed attempts");
 
     // Verify session count
@@ -260,10 +260,7 @@ async fn test_pty_cleanup_on_error() {
     let pty_id = pty_handle.id().to_string();
 
     // Kill PTY
-    pty_manager
-        .kill(&pty_id)
-        .await
-        .expect("Failed to kill PTY");
+    pty_manager.kill(&pty_id).await.expect("Failed to kill PTY");
 
     // Subsequent operations should fail gracefully
     let result = pty_manager.create_writer(&pty_id);
@@ -294,7 +291,9 @@ async fn test_session_state_consistency() {
 
     // Add some state
     session.add_to_history("command1".to_string()).await;
-    session.set_env("VAR1".to_string(), "value1".to_string()).await;
+    session
+        .set_env("VAR1".to_string(), "value1".to_string())
+        .await;
 
     // Try to do an invalid operation (path traversal)
     let invalid_path = std::path::PathBuf::from("/etc");

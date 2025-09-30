@@ -52,12 +52,7 @@ impl PtyProcessHandle {
         inner.config.cols = cols;
         inner.config.rows = rows;
 
-        tracing::debug!(
-            "Resized PTY {} to {}x{}",
-            self.id,
-            cols,
-            rows
-        );
+        tracing::debug!("Resized PTY {} to {}x{}", self.id, cols, rows);
 
         Ok(())
     }
@@ -81,18 +76,11 @@ impl PtyProcessHandle {
             return Err(PtyError::AlreadyClosed);
         }
 
-        let status = inner
-            .child
-            .wait()
-            .map_err(|e| PtyError::IoError(e))?;
+        let status = inner.child.wait().map_err(|e| PtyError::IoError(e))?;
 
         let exit_code = Some(status.exit_code() as i32);
 
-        tracing::info!(
-            "PTY process {} exited with code {:?}",
-            self.id,
-            exit_code
-        );
+        tracing::info!("PTY process {} exited with code {:?}", self.id, exit_code);
 
         Ok(exit_code)
     }

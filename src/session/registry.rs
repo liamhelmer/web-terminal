@@ -2,8 +2,8 @@
 //!
 //! Provides additional session management utilities
 
-use std::collections::HashMap;
 use super::state::{SessionId, UserId};
+use std::collections::HashMap;
 
 /// Session metadata for registry
 #[derive(Debug, Clone)]

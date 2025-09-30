@@ -256,11 +256,7 @@ impl AuthorizationService {
     }
 
     /// Check if user owns a session
-    pub fn check_session_ownership(
-        &self,
-        user_id: &UserId,
-        session_owner: &UserId,
-    ) -> Result<()> {
+    pub fn check_session_ownership(&self, user_id: &UserId, session_owner: &UserId) -> Result<()> {
         if user_id == session_owner {
             Ok(())
         } else {

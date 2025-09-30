@@ -8,7 +8,7 @@ use std::path::Path;
 use anyhow::{Context, Result};
 
 #[cfg(feature = "tls")]
-use rustls::{ServerConfig as RustlsServerConfig, pki_types::CertificateDer};
+use rustls::{pki_types::CertificateDer, ServerConfig as RustlsServerConfig};
 #[cfg(feature = "tls")]
 use rustls_pemfile::{certs, private_key};
 
@@ -94,8 +94,7 @@ pub fn validate_tls_files(cert_path: &str, key_path: &str) -> Result<()> {
     File::open(cert_path)
         .with_context(|| format!("Cannot read certificate file: {}", cert_path))?;
 
-    File::open(key_path)
-        .with_context(|| format!("Cannot read private key file: {}", key_path))?;
+    File::open(key_path).with_context(|| format!("Cannot read private key file: {}", key_path))?;
 
     tracing::info!("TLS files validated successfully");
     Ok(())
@@ -107,11 +106,7 @@ mod tests {
 
     #[test]
     fn test_tls_config_creation() {
-        let config = TlsConfig::new(
-            "cert.pem".to_string(),
-            "key.pem".to_string(),
-            true,
-        );
+        let config = TlsConfig::new("cert.pem".to_string(), "key.pem".to_string(), true);
         assert_eq!(config.cert_path, "cert.pem");
         assert_eq!(config.key_path, "key.pem");
         assert!(config.enforce_https);

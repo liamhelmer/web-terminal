@@ -2,8 +2,8 @@
 // Per spec-kit/008-testing-spec.md - Unit Tests
 // Per spec-kit/003-backend-spec.md section 6 - Configuration
 
-use web_terminal::config::{ServerConfig, SecurityConfig, LoggingConfig};
 use std::path::PathBuf;
+use web_terminal::config::{LoggingConfig, SecurityConfig, ServerConfig};
 
 /// Test ServerConfig default values
 ///
@@ -110,9 +110,15 @@ fn test_security_config_multiple_cors_origins() {
 
     // Act & Assert
     assert_eq!(config.cors_origins.len(), 3);
-    assert!(config.cors_origins.contains(&"https://example.com".to_string()));
-    assert!(config.cors_origins.contains(&"https://app.example.com".to_string()));
-    assert!(config.cors_origins.contains(&"http://localhost:3000".to_string()));
+    assert!(config
+        .cors_origins
+        .contains(&"https://example.com".to_string()));
+    assert!(config
+        .cors_origins
+        .contains(&"https://app.example.com".to_string()));
+    assert!(config
+        .cors_origins
+        .contains(&"http://localhost:3000".to_string()));
 }
 
 /// Test LoggingConfig default values
@@ -143,7 +149,10 @@ fn test_logging_config_custom() {
     assert_eq!(config.level, "debug");
     assert!(config.json);
     assert!(config.file.is_some());
-    assert_eq!(config.file.unwrap(), PathBuf::from("/var/log/web-terminal.log"));
+    assert_eq!(
+        config.file.unwrap(),
+        PathBuf::from("/var/log/web-terminal.log")
+    );
 }
 
 /// Test LoggingConfig all log levels
@@ -228,7 +237,10 @@ fn test_server_config_with_tls() {
     // Act & Assert
     assert!(config.tls_cert.is_some());
     assert!(config.tls_key.is_some());
-    assert_eq!(config.tls_cert.unwrap(), PathBuf::from("/etc/ssl/certs/server.crt"));
+    assert_eq!(
+        config.tls_cert.unwrap(),
+        PathBuf::from("/etc/ssl/certs/server.crt")
+    );
 }
 
 /// Test worker threads defaults to CPU count
@@ -247,10 +259,22 @@ fn test_worker_threads_defaults_to_cpu_count() {
 fn test_server_config_port_range() {
     // Arrange - test various port numbers
     let configs = vec![
-        ServerConfig { port: 1, ..Default::default() },
-        ServerConfig { port: 80, ..Default::default() },
-        ServerConfig { port: 8080, ..Default::default() },
-        ServerConfig { port: 65535, ..Default::default() },
+        ServerConfig {
+            port: 1,
+            ..Default::default()
+        },
+        ServerConfig {
+            port: 80,
+            ..Default::default()
+        },
+        ServerConfig {
+            port: 8080,
+            ..Default::default()
+        },
+        ServerConfig {
+            port: 65535,
+            ..Default::default()
+        },
     ];
 
     // Act & Assert - all should be valid u16 values

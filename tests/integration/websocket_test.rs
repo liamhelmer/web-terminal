@@ -4,7 +4,7 @@
 // Tests WebSocket message protocol and real-time communication
 
 use std::time::Duration;
-use web_terminal::protocol::{ClientMessage, ServerMessage, Signal, ConnectionStatus};
+use web_terminal::protocol::{ClientMessage, ConnectionStatus, ServerMessage, Signal};
 
 /// Test message serialization and deserialization
 ///
@@ -284,7 +284,9 @@ async fn test_message_protocol_completeness() {
 async fn test_large_message_handling() {
     // Test large output message (1MB)
     let large_data = "x".repeat(1024 * 1024);
-    let large_msg = ServerMessage::Output { data: large_data.clone() };
+    let large_msg = ServerMessage::Output {
+        data: large_data.clone(),
+    };
 
     let json = serde_json::to_string(&large_msg).expect("Failed to serialize large message");
     let parsed: ServerMessage =

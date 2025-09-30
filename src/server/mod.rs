@@ -13,4 +13,4 @@ pub use middleware::{JwtAuthMiddleware, RateLimitMiddleware};
 pub use websocket::WebSocketSession;
 
 #[cfg(feature = "tls")]
-pub use tls::{TlsConfig as TlsServerConfig, load_tls_config, validate_tls_files};
+pub use tls::{load_tls_config, validate_tls_files, TlsConfig as TlsServerConfig};

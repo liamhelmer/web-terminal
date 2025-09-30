@@ -94,7 +94,8 @@ async fn test_admin_can_view_any_session() -> Result<()> {
     let _session = session_manager.create_session(alice.clone()).await?;
 
     // Admin views Alice's session
-    let result = authz.authorize_session_action(&admin_user, "admin", Permission::ViewSession, &alice);
+    let result =
+        authz.authorize_session_action(&admin_user, "admin", Permission::ViewSession, &alice);
     assert!(result.is_ok(), "Admin should be able to view any session");
 
     Ok(())
@@ -156,7 +157,8 @@ async fn test_admin_can_kill_any_session() -> Result<()> {
     let session = session_manager.create_session(alice.clone()).await?;
 
     // Admin kills Alice's session
-    let result = authz.authorize_session_action(&admin_user, "admin", Permission::KillSession, &alice);
+    let result =
+        authz.authorize_session_action(&admin_user, "admin", Permission::KillSession, &alice);
     assert!(result.is_ok(), "Admin should be able to kill any session");
 
     // Actually kill the session
@@ -317,10 +319,7 @@ async fn test_admin_can_list_all_sessions() -> Result<()> {
     let admin_user = admin();
 
     let result = authz.check_permission(&admin_user, "admin", Permission::ListAllSessions, None);
-    assert!(
-        result.is_ok(),
-        "Admin should be able to list all sessions"
-    );
+    assert!(result.is_ok(), "Admin should be able to list all sessions");
 
     Ok(())
 }

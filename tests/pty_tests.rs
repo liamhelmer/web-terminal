@@ -26,7 +26,9 @@ async fn test_pty_write_and_read() {
     let handle = manager.spawn(None).expect("Failed to spawn PTY");
 
     // Create writer and reader
-    let writer = manager.create_writer(handle.id()).expect("Failed to create writer");
+    let writer = manager
+        .create_writer(handle.id())
+        .expect("Failed to create writer");
     let (tx, mut rx) = mpsc::unbounded_channel();
 
     // Start streaming output
@@ -127,7 +129,10 @@ async fn test_pty_multiple_processes() {
     assert!(manager.is_alive(handle3.id()).await);
 
     // Kill one
-    manager.kill(handle2.id()).await.expect("Failed to kill PTY 2");
+    manager
+        .kill(handle2.id())
+        .await
+        .expect("Failed to kill PTY 2");
     assert_eq!(manager.count(), 2);
 
     // Kill all remaining
@@ -171,7 +176,10 @@ async fn test_pty_shell_variants() {
     config.shell = ShellConfig::bash();
     let handle = manager.spawn(Some(config)).expect("Failed to spawn bash");
     assert!(manager.is_alive(handle.id()).await);
-    manager.kill(handle.id()).await.expect("Failed to kill bash");
+    manager
+        .kill(handle.id())
+        .await
+        .expect("Failed to kill bash");
 
     // Test sh
     let mut config = PtyConfig::default();
@@ -187,12 +195,16 @@ async fn test_pty_environment_variables() {
 
     // Spawn PTY with custom env
     let mut config = PtyConfig::default();
-    config.env.insert("TEST_VAR".to_string(), "test_value".to_string());
+    config
+        .env
+        .insert("TEST_VAR".to_string(), "test_value".to_string());
 
     let handle = manager.spawn(Some(config)).expect("Failed to spawn PTY");
 
     // Create writer and reader
-    let writer = manager.create_writer(handle.id()).expect("Failed to create writer");
+    let writer = manager
+        .create_writer(handle.id())
+        .expect("Failed to create writer");
     let (tx, mut rx) = mpsc::unbounded_channel();
 
     manager

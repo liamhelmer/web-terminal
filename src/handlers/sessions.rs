@@ -92,9 +92,10 @@ pub async fn create_session_handler(
     };
 
     // Check authorization
-    if let Err(e) = state
-        .authz_service
-        .check_permission(&user_id, role, Permission::CreateSession, None)
+    if let Err(e) =
+        state
+            .authz_service
+            .check_permission(&user_id, role, Permission::CreateSession, None)
     {
         tracing::warn!(
             "Authorization failed for user {} to create session: {}",

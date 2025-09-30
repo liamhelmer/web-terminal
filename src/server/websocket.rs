@@ -9,8 +9,8 @@ use std::time::{Duration, Instant};
 
 use crate::protocol::{error_codes, ClientMessage, ConnectionStatus, ServerMessage, Signal};
 use crate::pty::PtyManager;
-use crate::server::middleware::auth::UserContext;
 use crate::security::jwt_validator::JwtValidator;
+use crate::server::middleware::auth::UserContext;
 use crate::session::{SessionId, SessionManager};
 
 /// Heartbeat interval: 5 seconds
@@ -151,10 +151,7 @@ impl WebSocketSession {
         ctx.run_interval(HEARTBEAT_INTERVAL, |act, ctx| {
             // Check if client timed out
             if Instant::now().duration_since(act.last_heartbeat) > CLIENT_TIMEOUT {
-                tracing::warn!(
-                    "WebSocket heartbeat timeout for session {}",
-                    act.session_id
-                );
+                tracing::warn!("WebSocket heartbeat timeout for session {}", act.session_id);
                 ctx.stop();
                 return;
             }
@@ -227,9 +224,8 @@ impl WebSocketSession {
 
         let pty_manager = &self.pty_manager;
         let result = tokio::task::block_in_place(|| {
-            tokio::runtime::Handle::current().block_on(async {
-                pty_manager.resize(&pty_id, cols, rows).await
-            })
+            tokio::runtime::Handle::current()
+                .block_on(async { pty_manager.resize(&pty_id, cols, rows).await })
         });
 
         if let Err(e) = result {
@@ -515,7 +511,8 @@ impl StreamHandler<std::result::Result<ws::Message, ws::ProtocolError>> for WebS
                                         std::time::SystemTime::now()
                                             .duration_since(std::time::UNIX_EPOCH)
                                             .unwrap()
-                                            .as_millis() as u64,
+                                            .as_millis()
+                                            as u64,
                                     ),
                                     latency_ms: None,
                                 };

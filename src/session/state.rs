@@ -261,7 +261,11 @@ impl Session {
 
         // TODO: Implement actual process killing
         // This will be implemented by the process management module
-        tracing::info!("Killing {} processes for session {}", state.processes.len(), self.id);
+        tracing::info!(
+            "Killing {} processes for session {}",
+            state.processes.len(),
+            self.id
+        );
 
         Ok(())
     }
@@ -272,7 +276,11 @@ impl Session {
 
         // TODO: Implement filesystem cleanup
         // This will be implemented by the filesystem module
-        tracing::info!("Cleaning up filesystem for session {} at {:?}", self.id, state.working_dir);
+        tracing::info!(
+            "Cleaning up filesystem for session {} at {:?}",
+            self.id,
+            state.working_dir
+        );
 
         Ok(())
     }
@@ -333,7 +341,9 @@ mod tests {
         let workspace = PathBuf::from("/workspace/test");
         let session = Session::new(user_id, workspace);
 
-        session.set_env("MY_VAR".to_string(), "my_value".to_string()).await;
+        session
+            .set_env("MY_VAR".to_string(), "my_value".to_string())
+            .await;
 
         let env = session.get_environment().await;
         assert_eq!(env.get("MY_VAR"), Some(&"my_value".to_string()));

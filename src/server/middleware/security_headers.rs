@@ -1,12 +1,12 @@
 // Security headers middleware
 // Per spec-kit/002-architecture.md Layer 1: Network Security
 
-use std::future::{ready, Ready};
 use actix_web::{
     dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
     Error,
 };
 use futures_util::future::LocalBoxFuture;
+use std::future::{ready, Ready};
 
 /// Security headers middleware
 /// Per spec-kit/002-architecture.md: Defense in depth strategy
@@ -177,8 +177,9 @@ mod tests {
         let app = test::init_service(
             App::new()
                 .wrap(SecurityHeadersMiddleware::default())
-                .route("/", web::get().to(test_handler))
-        ).await;
+                .route("/", web::get().to(test_handler)),
+        )
+        .await;
 
         let req = test::TestRequest::get().uri("/").to_request();
         let resp = test::call_service(&app, req).await;

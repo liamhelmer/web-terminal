@@ -1,8 +1,8 @@
 // Unit tests for PTY Manager
 // Per spec-kit/008-testing-spec.md - Unit Tests
 
-use web_terminal::pty::{PtyConfig, PtyManager, PtyError, ShellConfig};
 use std::time::Duration;
+use web_terminal::pty::{PtyConfig, PtyError, PtyManager, ShellConfig};
 
 /// Test basic PTY manager creation
 #[test]
@@ -65,7 +65,11 @@ async fn test_spawn_with_custom_shell() {
     let manager = PtyManager::with_defaults();
 
     let handle = manager
-        .spawn_with_shell("/bin/sh", vec!["-c".to_string(), "echo test".to_string()], None)
+        .spawn_with_shell(
+            "/bin/sh",
+            vec!["-c".to_string(), "echo test".to_string()],
+            None,
+        )
         .expect("Failed to spawn PTY with custom shell");
 
     assert_eq!(manager.count(), 1);
@@ -247,15 +251,16 @@ async fn test_wait_for_pty_exit() {
 
     // Spawn a process that exits immediately
     let handle = manager
-        .spawn_with_shell("/bin/sh", vec!["-c".to_string(), "exit 42".to_string()], None)
+        .spawn_with_shell(
+            "/bin/sh",
+            vec!["-c".to_string(), "exit 42".to_string()],
+            None,
+        )
         .expect("Failed to spawn PTY");
 
     let id = handle.id().to_string();
 
-    let exit_code = manager
-        .wait(&id)
-        .await
-        .expect("Failed to wait for PTY");
+    let exit_code = manager.wait(&id).await.expect("Failed to wait for PTY");
 
     assert_eq!(exit_code, Some(42));
 
@@ -297,7 +302,9 @@ async fn test_create_reader() {
     let handle = manager.spawn(None).expect("Failed to spawn PTY");
     let id = handle.id().to_string();
 
-    let reader = manager.create_reader(&id, None).expect("Failed to create reader");
+    let reader = manager
+        .create_reader(&id, None)
+        .expect("Failed to create reader");
 
     // Reader should be created successfully
     // Actual reading is tested in io_handler tests
@@ -337,9 +344,8 @@ async fn test_concurrent_access() {
     // Spawn multiple tasks that create PTYs concurrently
     for _ in 0..10 {
         let manager_clone = Arc::clone(&manager);
-        let handle = tokio::spawn(async move {
-            manager_clone.spawn(None).expect("Failed to spawn PTY")
-        });
+        let handle =
+            tokio::spawn(async move { manager_clone.spawn(None).expect("Failed to spawn PTY") });
         handles.push(handle);
     }
 
@@ -367,8 +373,11 @@ async fn test_session_creation_latency() {
     let duration = start.elapsed();
 
     // Should complete within 200ms
-    assert!(duration < Duration::from_millis(200),
-        "PTY creation took {:?}, expected < 200ms", duration);
+    assert!(
+        duration < Duration::from_millis(200),
+        "PTY creation took {:?}, expected < 200ms",
+        duration
+    );
 
     // Cleanup
     manager.kill(handle.id()).await.expect("Failed to kill PTY");

@@ -200,10 +200,6 @@ async fn test_token_format() {
 
     // Each part should be non-empty
     for (i, part) in parts.iter().enumerate() {
-        assert!(
-            !part.is_empty(),
-            "JWT token part {} should not be empty",
-            i
-        );
+        assert!(!part.is_empty(), "JWT token part {} should not be empty", i);
     }
 }

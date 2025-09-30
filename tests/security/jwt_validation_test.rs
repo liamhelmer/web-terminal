@@ -3,12 +3,10 @@
 
 use std::sync::Arc;
 use std::time::Duration;
-use web_terminal::security::{
-    JwksClient, JwksProvider, JwtValidator, Claims, ValidationError,
-};
+use web_terminal::security::{Claims, JwksClient, JwksProvider, JwtValidator, ValidationError};
 use wiremock::{
-    Mock, MockServer, ResponseTemplate,
     matchers::{method, path},
+    Mock, MockServer, ResponseTemplate,
 };
 
 /// Create a test JWKS response
@@ -45,7 +43,7 @@ fn create_test_token_header(kid: &str, alg: &str) -> String {
 
     let header_b64 = base64::encode_config(
         serde_json::to_string(&header).unwrap(),
-        base64::URL_SAFE_NO_PAD
+        base64::URL_SAFE_NO_PAD,
     );
 
     format!("{}.payload.signature", header_b64)
@@ -74,7 +72,10 @@ async fn test_jwks_fetch_success() {
     let client = JwksClient::new(providers).expect("Failed to create client");
 
     // Fetch keys
-    let keys = client.fetch_keys("test-provider").await.expect("Failed to fetch keys");
+    let keys = client
+        .fetch_keys("test-provider")
+        .await
+        .expect("Failed to fetch keys");
 
     assert_eq!(keys.len(), 2);
     assert_eq!(keys[0].kid, "test-key-1");
@@ -104,10 +105,16 @@ async fn test_jwks_cache_behavior() {
     let client = JwksClient::new(providers).expect("Failed to create client");
 
     // First fetch - should hit the server
-    let keys1 = client.fetch_keys("test-provider").await.expect("First fetch failed");
+    let keys1 = client
+        .fetch_keys("test-provider")
+        .await
+        .expect("First fetch failed");
 
     // Second fetch - should use cache
-    let keys2 = client.fetch_keys("test-provider").await.expect("Second fetch failed");
+    let keys2 = client
+        .fetch_keys("test-provider")
+        .await
+        .expect("Second fetch failed");
 
     assert_eq!(keys1.len(), keys2.len());
     assert_eq!(keys1[0].kid, keys2[0].kid);
@@ -134,13 +141,19 @@ async fn test_jwks_cache_expiration() {
     let client = JwksClient::new(providers).expect("Failed to create client");
 
     // First fetch
-    client.fetch_keys("test-provider").await.expect("First fetch failed");
+    client
+        .fetch_keys("test-provider")
+        .await
+        .expect("First fetch failed");
 
     // Wait for cache to expire
     tokio::time::sleep(Duration::from_millis(150)).await;
 
     // Second fetch - should hit server again
-    client.fetch_keys("test-provider").await.expect("Second fetch failed");
+    client
+        .fetch_keys("test-provider")
+        .await
+        .expect("Second fetch failed");
 }
 
 #[tokio::test]
@@ -163,7 +176,8 @@ async fn test_jwks_get_specific_key() {
     let client = JwksClient::new(providers).expect("Failed to create client");
 
     // Get specific key
-    let key = client.get_key("test-key-1", "test-provider")
+    let key = client
+        .get_key("test-key-1", "test-provider")
         .await
         .expect("Failed to get key")
         .expect("Key not found");
@@ -172,7 +186,8 @@ async fn test_jwks_get_specific_key() {
     assert_eq!(key.alg, "RS256");
 
     // Try to get non-existent key
-    let missing_key = client.get_key("non-existent", "test-provider")
+    let missing_key = client
+        .get_key("non-existent", "test-provider")
         .await
         .expect("Failed to query key");
 
@@ -277,7 +292,10 @@ async fn test_jwks_cache_stats() {
     assert_eq!(stats.len(), 0);
 
     // Fetch keys
-    client.fetch_keys("test-provider").await.expect("Failed to fetch keys");
+    client
+        .fetch_keys("test-provider")
+        .await
+        .expect("Failed to fetch keys");
 
     // Should have stats now
     let stats = client.cache_stats();
@@ -308,7 +326,10 @@ async fn test_jwks_background_refresh() {
     let client = Arc::new(JwksClient::new(providers).expect("Failed to create client"));
 
     // Initial fetch
-    client.fetch_keys("test-provider").await.expect("Initial fetch failed");
+    client
+        .fetch_keys("test-provider")
+        .await
+        .expect("Initial fetch failed");
 
     // Start background refresh task
     let _refresh_handle = client.clone().start_refresh_task();
@@ -347,7 +368,7 @@ async fn test_jwt_validator_missing_kid() {
 
     let header_b64 = base64::encode_config(
         serde_json::to_string(&header).unwrap(),
-        base64::URL_SAFE_NO_PAD
+        base64::URL_SAFE_NO_PAD,
     );
 
     let token = format!("{}.payload.signature", header_b64);
@@ -394,12 +415,12 @@ async fn test_jwt_validator_key_not_found() {
 
     let header_b64 = base64::encode_config(
         serde_json::to_string(&header).unwrap(),
-        base64::URL_SAFE_NO_PAD
+        base64::URL_SAFE_NO_PAD,
     );
 
     let claims_b64 = base64::encode_config(
         serde_json::to_string(&claims).unwrap(),
-        base64::URL_SAFE_NO_PAD
+        base64::URL_SAFE_NO_PAD,
     );
 
     let token = format!("{}.{}.signature", header_b64, claims_b64);
@@ -444,8 +465,14 @@ async fn test_multiple_providers() {
     let client = JwksClient::new(providers).expect("Failed to create client");
 
     // Fetch from both providers
-    let keys1 = client.fetch_keys("provider1").await.expect("Provider 1 fetch failed");
-    let keys2 = client.fetch_keys("provider2").await.expect("Provider 2 fetch failed");
+    let keys1 = client
+        .fetch_keys("provider1")
+        .await
+        .expect("Provider 1 fetch failed");
+    let keys2 = client
+        .fetch_keys("provider2")
+        .await
+        .expect("Provider 2 fetch failed");
 
     assert_eq!(keys1.len(), 2);
     assert_eq!(keys2.len(), 2);

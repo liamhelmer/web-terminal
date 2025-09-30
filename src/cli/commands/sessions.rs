@@ -1,7 +1,9 @@
 // Session management commands
 // Per spec-kit/005-cli-spec.md
 
-use crate::cli::args::{SessionCommands, SessionListArgs, SessionKillArgs, SessionCleanupArgs, OutputFormat};
+use crate::cli::args::{
+    OutputFormat, SessionCleanupArgs, SessionCommands, SessionKillArgs, SessionListArgs,
+};
 use anyhow::Result;
 
 pub async fn execute(cmd: SessionCommands) -> Result<()> {
@@ -20,22 +22,25 @@ async fn list(args: SessionListArgs) -> Result<()> {
     }
 
     // TODO: Get actual sessions
-    let sessions = vec![
-        Session {
-            id: "abc123".to_string(),
-            user: "alice".to_string(),
-            created: "2025-09-29 10:00:00".to_string(),
-            last_activity: "2025-09-29 10:05:00".to_string(),
-        },
-    ];
+    let sessions = vec![Session {
+        id: "abc123".to_string(),
+        user: "alice".to_string(),
+        created: "2025-09-29 10:00:00".to_string(),
+        last_activity: "2025-09-29 10:05:00".to_string(),
+    }];
 
     match args.format {
         OutputFormat::Table => {
-            println!("\n{:<12} {:<12} {:<20} {:<20}", "SESSION_ID", "USER", "CREATED", "LAST_ACTIVITY");
+            println!(
+                "\n{:<12} {:<12} {:<20} {:<20}",
+                "SESSION_ID", "USER", "CREATED", "LAST_ACTIVITY"
+            );
             println!("{}", "-".repeat(64));
             for session in sessions {
-                println!("{:<12} {:<12} {:<20} {:<20}",
-                    session.id, session.user, session.created, session.last_activity);
+                println!(
+                    "{:<12} {:<12} {:<20} {:<20}",
+                    session.id, session.user, session.created, session.last_activity
+                );
             }
         }
         OutputFormat::Json => {
@@ -44,7 +49,10 @@ async fn list(args: SessionListArgs) -> Result<()> {
         OutputFormat::Csv => {
             println!("session_id,user,created,last_activity");
             for session in sessions {
-                println!("{},{},{},{}", session.id, session.user, session.created, session.last_activity);
+                println!(
+                    "{},{},{},{}",
+                    session.id, session.user, session.created, session.last_activity
+                );
             }
         }
     }

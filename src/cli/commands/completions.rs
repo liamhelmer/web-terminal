@@ -2,9 +2,9 @@
 // Per spec-kit/005-cli-spec.md
 
 use crate::cli::args::{Cli, CompletionsArgs, Shell};
+use anyhow::Result;
 use clap::CommandFactory;
 use clap_complete::{generate, shells};
-use anyhow::Result;
 use std::io;
 
 pub fn execute(args: CompletionsArgs) -> Result<()> {

@@ -2,8 +2,8 @@
 // Per spec-kit/008-testing-spec.md - Unit Tests
 // Per spec-kit/003-backend-spec.md - Error handling
 
-use web_terminal::error::Error;
 use std::io;
+use web_terminal::error::Error;
 
 /// Test session error categorization
 #[test]
@@ -43,13 +43,25 @@ fn test_security_error_categorization() {
 #[test]
 fn test_error_status_codes() {
     // Arrange & Act & Assert
-    assert_eq!(Error::SessionNotFound("test".to_string()).status_code(), 404);
-    assert_eq!(Error::SessionLimitExceeded("test".to_string()).status_code(), 429);
+    assert_eq!(
+        Error::SessionNotFound("test".to_string()).status_code(),
+        404
+    );
+    assert_eq!(
+        Error::SessionLimitExceeded("test".to_string()).status_code(),
+        429
+    );
     assert_eq!(Error::SessionExpired("test".to_string()).status_code(), 410);
     assert_eq!(Error::InvalidCommand("test".to_string()).status_code(), 400);
-    assert_eq!(Error::CommandNotAllowed("test".to_string()).status_code(), 400);
+    assert_eq!(
+        Error::CommandNotAllowed("test".to_string()).status_code(),
+        400
+    );
     assert_eq!(Error::EmptyCommand.status_code(), 400);
-    assert_eq!(Error::ResourceLimitExceeded("test".to_string()).status_code(), 429);
+    assert_eq!(
+        Error::ResourceLimitExceeded("test".to_string()).status_code(),
+        429
+    );
     assert_eq!(Error::InvalidPath("test".to_string()).status_code(), 400);
     assert_eq!(Error::AuthenticationFailed.status_code(), 401);
     assert_eq!(Error::InvalidToken.status_code(), 401);
@@ -96,8 +108,8 @@ fn test_error_from_io_error() {
 #[test]
 fn test_error_from_serde_error() {
     // Arrange
-    let json_error = serde_json::from_str::<serde_json::Value>("invalid json")
-        .expect_err("Should fail");
+    let json_error =
+        serde_json::from_str::<serde_json::Value>("invalid json").expect_err("Should fail");
 
     // Act
     let error: Error = json_error.into();
@@ -316,6 +328,10 @@ fn test_all_status_codes_valid() {
 
     for error in errors {
         let code = error.status_code();
-        assert!(code >= 400 && code < 600, "Invalid HTTP status code: {}", code);
+        assert!(
+            code >= 400 && code < 600,
+            "Invalid HTTP status code: {}",
+            code
+        );
     }
 }

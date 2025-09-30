@@ -3,27 +3,29 @@
 
 use std::sync::Arc;
 
+use actix_files::Files;
 use actix_web::{web, App, HttpRequest, HttpResponse, HttpServer, Result};
 use actix_web_actors::ws;
-use actix_files::Files;
 
 use crate::config::Config;
 use crate::handlers;
 use crate::pty::PtyManager;
-use crate::server::middleware::auth::{JwtAuthMiddleware, UserContext};
 use crate::security::jwks_client::JwksClient;
 use crate::security::jwt_validator::JwtValidator;
+use crate::server::middleware::auth::{JwtAuthMiddleware, UserContext};
 use crate::server::middleware::{
     cors::CorsConfig as CorsMiddlewareConfig,
-    security_headers::{SecurityHeadersMiddleware, SecurityHeadersConfig as SecurityHeadersMiddlewareConfig},
+    security_headers::{
+        SecurityHeadersConfig as SecurityHeadersMiddlewareConfig, SecurityHeadersMiddleware,
+    },
 };
-use crate::session::{SessionId, SessionManager};
 use crate::server::websocket::WebSocketSession;
+use crate::session::{SessionId, SessionManager};
 
 #[cfg(feature = "tls")]
-use crate::server::tls::{load_tls_config, validate_tls_files};
-#[cfg(feature = "tls")]
 use crate::config::server::TlsConfig;
+#[cfg(feature = "tls")]
+use crate::server::tls::{load_tls_config, validate_tls_files};
 
 /// HTTP server instance
 /// Per spec-kit/003-backend-spec.md: Single-port architecture
@@ -38,10 +40,7 @@ impl Server {
     /// Create a new HTTP server instance
     /// Per spec-kit/003-backend-spec.md section 1.1
     /// Per spec-kit/011-authentication-spec.md: JWT authentication
-    pub fn new(
-        config: Config,
-        session_manager: SessionManager,
-    ) -> Self {
+    pub fn new(config: Config, session_manager: SessionManager) -> Self {
         tracing::info!(
             "Initializing HTTP server on {}:{}",
             config.server.host,
@@ -72,7 +71,11 @@ impl Server {
         let protocol = if tls_enabled { "https" } else { "http" };
         let ws_protocol = if tls_enabled { "wss" } else { "ws" };
 
-        tracing::info!("Starting server on {} ({})", bind_addr, protocol.to_uppercase());
+        tracing::info!(
+            "Starting server on {} ({})",
+            bind_addr,
+            protocol.to_uppercase()
+        );
         tracing::info!("WebSocket endpoint: {}://{}/ws", ws_protocol, bind_addr);
         tracing::info!("Health check: {}://{}/api/v1/health", protocol, bind_addr);
 
@@ -130,8 +133,11 @@ impl Server {
                                 .route("/sessions", web::get().to(handlers::list_sessions))
                                 .route("/sessions/{id}", web::get().to(handlers::get_session))
                                 .route("/sessions/{id}", web::delete().to(handlers::delete_session))
-                                .route("/sessions/{id}/history", web::get().to(handlers::get_session_history))
-                        )
+                                .route(
+                                    "/sessions/{id}/history",
+                                    web::get().to(handlers::get_session_history),
+                                ),
+                        ),
                 )
                 // WebSocket endpoint (authentication via Authenticate message)
                 // Per spec-kit/007-websocket-spec.md: WebSocket authentication
@@ -159,10 +165,7 @@ impl Server {
         }
 
         // Non-TLS binding
-        server
-            .bind(&bind_addr)?
-            .run()
-            .await
+        server.bind(&bind_addr)?.run().await
     }
 }
 
@@ -186,7 +189,8 @@ async fn create_session(
     // Extract user context from authenticated request
     // Per spec-kit/011-authentication-spec.md: UserContext in request extensions
     use actix_web::HttpMessage;
-    let user_id = req.extensions()
+    let user_id = req
+        .extensions()
         .get::<UserContext>()
         .map(|ctx| ctx.user_id.clone())
         .unwrap_or_else(|| "unknown_user".to_string().into());
@@ -216,12 +220,10 @@ async fn get_session(
     let session_id: SessionId = path.into_inner().into();
 
     match session_manager.get_session(&session_id).await {
-        Ok(session) => {
-            Ok(HttpResponse::Ok().json(serde_json::json!({
-                "session_id": session.id.as_str(),
-                "user_id": session.user_id.as_str(),
-            })))
-        }
+        Ok(session) => Ok(HttpResponse::Ok().json(serde_json::json!({
+            "session_id": session.id.as_str(),
+            "user_id": session.user_id.as_str(),
+        }))),
         Err(e) => {
             tracing::error!("Failed to get session: {}", e);
             Ok(HttpResponse::NotFound().json(serde_json::json!({
@@ -296,7 +298,10 @@ async fn websocket_handler(
     match session_manager.create_session(user_id).await {
         Ok(session) => {
             let session_id = session.id.clone();
-            tracing::info!("WebSocket connection for session: {} (pending auth)", session_id);
+            tracing::info!(
+                "WebSocket connection for session: {} (pending auth)",
+                session_id
+            );
 
             // Create PTY manager per-connection (avoids Sync issues)
             let pty_manager = PtyManager::with_defaults();
@@ -322,8 +327,8 @@ async fn websocket_handler(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::session::SessionConfig;
     use crate::pty::PtyConfig;
+    use crate::session::SessionConfig;
 
     #[test]
     fn test_server_creation() {

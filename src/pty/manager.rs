@@ -42,7 +42,8 @@ impl PtyManager {
         let handle = PtyProcess::spawn(config)?;
 
         // Store in registry
-        self.processes.insert(handle.id().to_string(), handle.clone());
+        self.processes
+            .insert(handle.id().to_string(), handle.clone());
 
         tracing::info!(
             "PTY manager: spawned process {} (total: {})",

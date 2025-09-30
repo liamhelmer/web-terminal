@@ -2,9 +2,9 @@
 // Per spec-kit/008-testing-spec.md - Unit Tests
 // Per spec-kit/003-backend-spec.md section 3 - Process management
 
-use web_terminal::execution::ProcessManager;
 use std::collections::HashMap;
 use std::path::PathBuf;
+use web_terminal::execution::ProcessManager;
 
 /// Test process manager creation
 #[test]
@@ -49,7 +49,9 @@ async fn test_spawn_process_valid_command() {
     let working_dir = PathBuf::from("/tmp");
 
     // Act
-    let result = manager.spawn("echo", &["test".to_string()], &env, &working_dir).await;
+    let result = manager
+        .spawn("echo", &["test".to_string()], &env, &working_dir)
+        .await;
 
     // Assert
     assert!(result.is_ok());
@@ -67,9 +69,18 @@ async fn test_spawn_process_increments_pid() {
     let working_dir = PathBuf::from("/tmp");
 
     // Act
-    let handle1 = manager.spawn("echo", &["test1".to_string()], &env, &working_dir).await.unwrap();
-    let handle2 = manager.spawn("echo", &["test2".to_string()], &env, &working_dir).await.unwrap();
-    let handle3 = manager.spawn("echo", &["test3".to_string()], &env, &working_dir).await.unwrap();
+    let handle1 = manager
+        .spawn("echo", &["test1".to_string()], &env, &working_dir)
+        .await
+        .unwrap();
+    let handle2 = manager
+        .spawn("echo", &["test2".to_string()], &env, &working_dir)
+        .await
+        .unwrap();
+    let handle3 = manager
+        .spawn("echo", &["test3".to_string()], &env, &working_dir)
+        .await
+        .unwrap();
 
     // Assert
     assert_eq!(handle1.pid, 1);
@@ -132,7 +143,10 @@ async fn test_get_status_running_process() {
     let manager = ProcessManager::new();
     let env = HashMap::new();
     let working_dir = PathBuf::from("/tmp");
-    let handle = manager.spawn("sleep", &["10".to_string()], &env, &working_dir).await.unwrap();
+    let handle = manager
+        .spawn("sleep", &["10".to_string()], &env, &working_dir)
+        .await
+        .unwrap();
 
     // Act
     let result = manager.get_status(handle.pid).await;
@@ -164,7 +178,10 @@ async fn test_send_signal_to_process() {
     let manager = ProcessManager::new();
     let env = HashMap::new();
     let working_dir = PathBuf::from("/tmp");
-    let handle = manager.spawn("sleep", &["10".to_string()], &env, &working_dir).await.unwrap();
+    let handle = manager
+        .spawn("sleep", &["10".to_string()], &env, &working_dir)
+        .await
+        .unwrap();
 
     // Act
     let result = manager.send_signal(handle.pid, 15).await; // SIGTERM
@@ -193,7 +210,10 @@ async fn test_kill_process() {
     let manager = ProcessManager::new();
     let env = HashMap::new();
     let working_dir = PathBuf::from("/tmp");
-    let handle = manager.spawn("sleep", &["10".to_string()], &env, &working_dir).await.unwrap();
+    let handle = manager
+        .spawn("sleep", &["10".to_string()], &env, &working_dir)
+        .await
+        .unwrap();
 
     // Act
     let result = manager.kill(handle.pid).await;
@@ -222,7 +242,10 @@ async fn test_remove_process() {
     let manager = ProcessManager::new();
     let env = HashMap::new();
     let working_dir = PathBuf::from("/tmp");
-    let handle = manager.spawn("echo", &["test".to_string()], &env, &working_dir).await.unwrap();
+    let handle = manager
+        .spawn("echo", &["test".to_string()], &env, &working_dir)
+        .await
+        .unwrap();
 
     // Act
     let result = manager.remove_process(handle.pid).await;
@@ -253,8 +276,14 @@ async fn test_list_processes_after_spawn() {
     let working_dir = PathBuf::from("/tmp");
 
     // Act - spawn multiple processes
-    let handle1 = manager.spawn("sleep", &["10".to_string()], &env, &working_dir).await.unwrap();
-    let handle2 = manager.spawn("sleep", &["10".to_string()], &env, &working_dir).await.unwrap();
+    let handle1 = manager
+        .spawn("sleep", &["10".to_string()], &env, &working_dir)
+        .await
+        .unwrap();
+    let handle2 = manager
+        .spawn("sleep", &["10".to_string()], &env, &working_dir)
+        .await
+        .unwrap();
     let processes = manager.list_processes().await;
 
     // Assert
@@ -276,7 +305,9 @@ async fn test_sequential_process_spawning() {
     // Act - spawn processes sequentially
     let mut results = vec![];
     for _ in 0..10 {
-        let result = manager.spawn("echo", &["test".to_string()], &env, &working_dir).await;
+        let result = manager
+            .spawn("echo", &["test".to_string()], &env, &working_dir)
+            .await;
         results.push(result);
     }
 
@@ -295,7 +326,10 @@ async fn test_process_handle_information() {
     let working_dir = PathBuf::from("/tmp");
 
     // Act
-    let handle = manager.spawn("ls", &["-la".to_string()], &env, &working_dir).await.unwrap();
+    let handle = manager
+        .spawn("ls", &["-la".to_string()], &env, &working_dir)
+        .await
+        .unwrap();
 
     // Assert
     assert!(handle.pid > 0);
@@ -327,8 +361,14 @@ async fn test_spawn_multiple_different_commands() {
     let working_dir = PathBuf::from("/tmp");
 
     // Act
-    let handle1 = manager.spawn("echo", &["test1".to_string()], &env, &working_dir).await.unwrap();
-    let handle2 = manager.spawn("ls", &["-la".to_string()], &env, &working_dir).await.unwrap();
+    let handle1 = manager
+        .spawn("echo", &["test1".to_string()], &env, &working_dir)
+        .await
+        .unwrap();
+    let handle2 = manager
+        .spawn("ls", &["-la".to_string()], &env, &working_dir)
+        .await
+        .unwrap();
     let handle3 = manager.spawn("pwd", &[], &env, &working_dir).await.unwrap();
 
     // Assert

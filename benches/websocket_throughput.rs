@@ -9,7 +9,7 @@ use tokio::runtime::Runtime;
 use tokio::sync::mpsc;
 use web_terminal::protocol::{ClientMessage, ServerMessage};
 use web_terminal::pty::{PtyConfig, PtyManager, ShellConfig};
-use web_terminal::session::{SessionConfig, SessionManager, SessionId, UserId};
+use web_terminal::session::{SessionConfig, SessionId, SessionManager, UserId};
 
 /// Benchmark message serialization/deserialization
 fn bench_message_serialization(c: &mut Criterion) {
@@ -17,30 +17,29 @@ fn bench_message_serialization(c: &mut Criterion) {
 
     // Test different message types
     let client_messages = vec![
-        ("command", ClientMessage::Command {
-            data: "echo 'test'".to_string(),
-        }),
-        ("input", ClientMessage::Input {
-            data: "test input".to_string(),
-        }),
-        ("resize", ClientMessage::Resize {
-            rows: 24,
-            cols: 80,
-        }),
+        (
+            "command",
+            ClientMessage::Command {
+                data: "echo 'test'".to_string(),
+            },
+        ),
+        (
+            "input",
+            ClientMessage::Input {
+                data: "test input".to_string(),
+            },
+        ),
+        ("resize", ClientMessage::Resize { rows: 24, cols: 80 }),
         ("ping", ClientMessage::Ping),
     ];
 
     for (name, msg) in client_messages.iter() {
-        group.bench_with_input(
-            BenchmarkId::new("serialize_client", name),
-            msg,
-            |b, msg| {
-                b.iter(|| {
-                    let json = serde_json::to_string(black_box(msg)).unwrap();
-                    black_box(json)
-                });
-            },
-        );
+        group.bench_with_input(BenchmarkId::new("serialize_client", name), msg, |b, msg| {
+            b.iter(|| {
+                let json = serde_json::to_string(black_box(msg)).unwrap();
+                black_box(json)
+            });
+        });
     }
 
     let server_messages = vec![
@@ -66,16 +65,12 @@ fn bench_message_serialization(c: &mut Criterion) {
     ];
 
     for (name, msg) in server_messages.iter() {
-        group.bench_with_input(
-            BenchmarkId::new("serialize_server", name),
-            msg,
-            |b, msg| {
-                b.iter(|| {
-                    let json = serde_json::to_string(black_box(msg)).unwrap();
-                    black_box(json)
-                });
-            },
-        );
+        group.bench_with_input(BenchmarkId::new("serialize_server", name), msg, |b, msg| {
+            b.iter(|| {
+                let json = serde_json::to_string(black_box(msg)).unwrap();
+                black_box(json)
+            });
+        });
     }
 
     group.finish();
@@ -131,23 +126,17 @@ fn bench_message_latency_by_size(c: &mut Criterion) {
         let data = "x".repeat(*size);
         group.throughput(Throughput::Bytes(*size as u64));
 
-        group.bench_with_input(
-            BenchmarkId::from_parameter(size),
-            &data,
-            |b, data| {
-                b.to_async(&rt).iter(|| async {
-                    let msg = ServerMessage::Output {
-                        data: data.clone(),
-                    };
+        group.bench_with_input(BenchmarkId::from_parameter(size), &data, |b, data| {
+            b.to_async(&rt).iter(|| async {
+                let msg = ServerMessage::Output { data: data.clone() };
 
-                    // Serialize
-                    let json = serde_json::to_string(black_box(&msg)).unwrap();
+                // Serialize
+                let json = serde_json::to_string(black_box(&msg)).unwrap();
 
-                    // Deserialize (simulating round-trip)
-                    let _decoded: ServerMessage = serde_json::from_str(&json).unwrap();
-                });
-            },
-        );
+                // Deserialize (simulating round-trip)
+                let _decoded: ServerMessage = serde_json::from_str(&json).unwrap();
+            });
+        });
     }
 
     group.finish();

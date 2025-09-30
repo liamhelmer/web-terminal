@@ -1,7 +1,7 @@
 // User management commands
 // Per spec-kit/005-cli-spec.md
 
-use crate::cli::args::{UserCommands, UserListArgs, UserCreateArgs, UserDeleteArgs};
+use crate::cli::args::{UserCommands, UserCreateArgs, UserDeleteArgs, UserListArgs};
 use anyhow::Result;
 
 pub async fn execute(cmd: UserCommands) -> Result<()> {

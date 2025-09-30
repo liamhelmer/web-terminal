@@ -84,7 +84,8 @@ impl SessionManager {
         let session_arc = Arc::new(session);
 
         // Store session
-        self.sessions.insert(session_id.clone(), session_arc.clone());
+        self.sessions
+            .insert(session_id.clone(), session_arc.clone());
 
         // Track user sessions
         self.user_sessions
