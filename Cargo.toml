@@ -25,6 +25,7 @@ futures-util = "0.3"
 # Serialization (per spec-kit/003-backend-spec.md)
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+serde_yaml = "0.9"
 
 # Logging and tracing (per spec-kit/003-backend-spec.md)
 tracing = "0.1"
@@ -34,9 +35,11 @@ tracing-actix-web = "0.7"
 # Concurrency (per spec-kit/003-backend-spec.md - Session management with DashMap)
 dashmap = "6.1"
 
-# Authentication (per spec-kit/003-backend-spec.md)
+# Authentication (per spec-kit/003-backend-spec.md and 011-authentication-spec.md)
 jsonwebtoken = "9"
 argon2 = "0.5"  # Password hashing
+reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
+base64 = "0.22"
 
 # CLI argument parsing (per spec-kit/005-cli-spec.md)
 clap = { version = "4", features = ["derive", "env", "wrap_help", "cargo"] }
@@ -63,9 +66,10 @@ chrono = { version = "0.4", features = ["serde"] }
 # UUID generation for session IDs
 uuid = { version = "1", features = ["v4", "serde"] }
 
-# TLS support (optional, per spec-kit/003-backend-spec.md)
+# TLS support (per spec-kit/009-deployment-spec.md - TLS requirements)
 rustls = { version = "0.23", optional = true }
 rustls-pemfile = { version = "2", optional = true }
+actix-web-lab = { version = "0.23", optional = true }  # For TLS acceptor
 
 # Byte buffer management (per spec-kit/003-backend-spec.md - zero-copy optimization)
 bytes = "1"
@@ -76,6 +80,9 @@ portable-pty = "0.9"
 # Humantime for duration serialization
 humantime-serde = "1"
 
+# Rate limiting (per spec-kit/002-architecture.md Layer 1 Network Security)
+governor = "0.8"
+
 [build-dependencies]
 # Build script dependencies
 chrono = "0.4"
@@ -84,13 +91,15 @@ chrono = "0.4"
 # Testing (per spec-kit/008-testing-spec.md)
 mockall = "0.13"       # Mocking for tests
 tempfile = "3"         # Temporary directories for tests
-criterion = "0.5"      # Benchmarking
+criterion = { version = "0.5", features = ["html_reports", "async_tokio"] }  # Benchmarking with async support
 assert_cmd = "2"       # CLI testing
 predicates = "3"       # Assertions for tests
+futures-util = "0.3"   # For async utilities in benchmarks
+wiremock = "0.6"       # HTTP mocking for JWKS tests
 
 [features]
 default = []
-tls = ["rustls", "rustls-pemfile"]
+tls = ["rustls", "rustls-pemfile", "actix-web-lab"]
 
 # Build optimization (per spec-kit/009-deployment-spec.md)
 [profile.release]
@@ -99,3 +108,20 @@ lto = true            # Link-time optimization
 codegen-units = 1     # Single codegen unit for better optimization
 strip = true          # Strip symbols for smaller binary
 panic = 'abort'       # Abort on panic (smaller binary)
+
+# Benchmark configuration
+[[bench]]
+name = "command_execution"
+harness = false
+
+[[bench]]
+name = "websocket_throughput"
+harness = false
+
+[[bench]]
+name = "session_creation"
+harness = false
+
+[[bench]]
+name = "concurrent_load"
+harness = false

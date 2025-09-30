@@ -1,0 +1,121 @@
+# Authentication Configuration
+# Per 011-authentication-spec.md section 10
+
+auth:
+  # Enable/disable authentication
+  enabled: true
+
+  # JWKS configuration
+  jwks:
+    providers:
+      # Backstage identity provider
+      - name: backstage
+        url: https://backstage.example.com/.well-known/jwks.json
+        issuer: https://backstage.example.com
+        audience: web-terminal
+        algorithms:
+          - RS256
+          - RS384
+          - RS512
+        cache_ttl: 1h
+        refresh_interval: 15m
+        timeout: 30s
+
+      # Auth0 provider (optional)
+      - name: auth0
+        url: https://example.auth0.com/.well-known/jwks.json
+        issuer: https://example.auth0.com/
+        audience: https://web-terminal.example.com
+        algorithms:
+          - RS256
+        cache_ttl: 1h
+        refresh_interval: 15m
+        timeout: 30s
+
+  # Authorization configuration
+  authorization:
+    # Authorization mode
+    mode: claim-based  # Options: claim-based, role-based, permission-based
+
+    # Allowed users (entity references)
+    allowed_users:
+      - user:default/alice
+      - user:default/bob
+      - user:prod/operator-charlie
+
+    # Allowed groups (entity references)
+    allowed_groups:
+      - group:default/platform-team
+      - group:default/developers
+      - group:default/admin
+      - group:prod/operators
+
+    # Claim paths
+    claims:
+      user_id: sub            # User identifier claim
+      email: email            # Email claim
+      groups: groups          # Alternative groups claim
+      entity_ref: ent         # Backstage ownership entities
+      name: name              # Display name claim
+
+    # Default policies
+    deny_by_default: true
+    allow_empty_groups: false
+
+    # Wildcard support (optional)
+    enable_wildcards: false
+
+  # Token validation
+  validation:
+    # Required claims
+    required_claims:
+      - sub
+      - iss
+      - aud
+      - exp
+      - iat
+
+    # Clock skew tolerance
+    clock_skew: 1m
+
+    # Allowed algorithms
+    allowed_algorithms:
+      - RS256
+      - RS384
+      - RS512
+      - ES256
+      - ES384
+      - ES512
+
+    # Minimum token lifetime
+    min_lifetime: 5m
+
+    # Maximum token lifetime
+    max_lifetime: 8h
+
+  # Security settings
+  security:
+    # Rate limiting
+    rate_limit:
+      enabled: true
+      max_failed_attempts: 5
+      window: 5m
+      lockout: 15m
+
+    # Audit logging
+    audit:
+      enabled: true
+      log_successful_auth: true
+      log_failed_auth: true
+      log_authorization_denials: true
+      log_token_details: false  # Security: don't log full tokens
+
+    # TLS requirements
+    require_tls: true
+
+    # Token sources (for WebSocket)
+    allowed_token_sources:
+      - header          # Authorization header
+      - query           # Query parameter (?token=...)
+      - subprotocol     # WebSocket subprotocol
+      - message         # First message

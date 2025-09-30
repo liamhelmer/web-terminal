@@ -28,18 +28,36 @@ The WebSocket protocol enables real-time bidirectional communication between the
 ```
 Client                                    Server
   |                                         |
-  |--- HTTP GET /ws?token=<jwt> ---------->|
+  |--- HTTP GET /ws ------------------------>|
   |<-- 101 Switching Protocols ------------|
   |                                         |
   |<-- ServerMessage::Connected ------------|
-  |--- ClientMessage::Hello --------------->|
+  |--- ClientMessage::Authenticate -------->|
+  |    { token: "eyJhbGc..." }              |
+  |                                         |
+  |      [JWT Validation]                   |
+  |      - Verify signature via JWKS        |
+  |      - Check expiration                 |
+  |      - Verify issuer                    |
+  |                                         |
+  |<-- ServerMessage::Authenticated --------|
+  |    { user_id: "user:default/john" }     |
   |                                         |
 ```
+
+**Authentication Flow:**
+
+1. Client establishes WebSocket connection (no token in URL for security)
+2. Server sends `Connected` message
+3. Client sends `Authenticate` message with JWT token
+4. Server validates JWT using JWKS public keys
+5. Server sends `Authenticated` message on success
+6. All subsequent messages require authentication
 
 #### Connection Request
 
 ```http
-GET /ws?token=eyJhbGc... HTTP/1.1
+GET /ws HTTP/1.1
 Host: <server-host>
 Upgrade: websocket
 Connection: Upgrade
@@ -48,6 +66,8 @@ Sec-WebSocket-Version: 13
 ```
 
 **Note:** `Host` header is set automatically by the browser based on the current page's origin.
+
+**Security Note:** JWT token is sent in the first WebSocket message, not in the URL, to prevent token leakage in logs.
 
 #### Connection Response
 
@@ -123,7 +143,35 @@ Binary messages are used for file transfers (see File Transfer Protocol).
 
 ## Client Messages
 
-### 1. Command Execution
+### 1. Authenticate
+
+**Type:** `authenticate`
+
+**Description:** Authenticate WebSocket connection with JWT token
+
+```json
+{
+  "type": "authenticate",
+  "token": "eyJhbGciOiJSUzI1NiIsImtpZCI6InRlc3QifQ..."
+}
+```
+
+**Fields:**
+- `type`: Always `"authenticate"`
+- `token`: JWT token obtained from Identity Provider (IdP)
+
+**Timing:**
+- Must be sent immediately after connection establishment
+- All other messages require authentication first
+- If not sent within 30 seconds, connection is closed
+
+**Response:**
+- Success: `ServerMessage::Authenticated`
+- Failure: `ServerMessage::Error` + connection closed (4000)
+
+---
+
+### 2. Command Execution
 
 **Type:** `command`
 
@@ -139,6 +187,8 @@ Binary messages are used for file transfers (see File Transfer Protocol).
 **Fields:**
 - `type`: Always `"command"`
 - `data`: Command string to execute
+
+**Authentication:** Required ✅
 
 ---
 
@@ -294,7 +344,32 @@ Binary format:
 
 ## Server Messages
 
-### 1. Output
+### 1. Authenticated
+
+**Type:** `authenticated`
+
+**Description:** Authentication successful
+
+```json
+{
+  "type": "authenticated",
+  "user_id": "user:default/john.doe",
+  "email": "john.doe@example.com",
+  "groups": ["group:default/platform-team"]
+}
+```
+
+**Fields:**
+- `type`: Always `"authenticated"`
+- `user_id`: User identity (Backstage entity reference or `sub` claim)
+- `email`: User email address (optional)
+- `groups`: User groups/roles (optional)
+
+**Sent:** In response to successful `ClientMessage::Authenticate`
+
+---
+
+### 2. Output
 
 **Type:** `output`
 
@@ -639,21 +714,68 @@ Client                                    Server
 
 ### 1. Authentication
 
-- JWT token required in connection URL
-- Token validated on connection establishment
-- Token expiration enforced
+**JWT-Based Authentication:**
 
-### 2. Message Validation
+- JWT token sent in `Authenticate` message (not URL)
+- Token validated using JWKS public keys from IdP
+- Signature verification (RS256/RS384/RS512/ES256/ES384)
+- Standard claims validated (exp, nbf, iss, aud)
+- Clock skew tolerance: 60 seconds
+- Token expiration strictly enforced
+
+**Authentication Flow:**
+
+1. WebSocket connection established
+2. Server sends `Connected` message
+3. Client sends `Authenticate` message with JWT
+4. Server validates JWT:
+   - Fetches JWKS keys from provider (cached)
+   - Verifies signature using public key
+   - Checks expiration, issuer, audience
+5. Server extracts user identity from claims
+6. Server attaches UserContext to connection
+7. All subsequent messages require authentication
+
+**Failure Handling:**
+
+- Invalid token: `Error` message + close code 4000
+- Expired token: `Error` message + close code 4001
+- Missing token: Connection closed after 30 seconds
+- Wrong issuer: `Error` message + close code 4000
+
+### 2. Authorization
+
+**Resource Access Control:**
+
+- Every message requires authenticated user
+- Session operations check resource ownership
+- Admin users can access all sessions
+- Regular users can only access own sessions
+- Group-based permissions supported
+
+**Permission Checks:**
+
+- `command`: User must own session
+- `resize`: User must own session
+- `signal`: User must own session
+- `file_upload`: User must own session
+- `file_download`: User must own session
+
+### 3. Message Validation
 
 - All messages validated against schema
 - Unknown message types rejected
 - Size limits enforced (max 1 MB per message)
+- Path traversal attempts blocked
+- Command injection prevention
 
-### 3. Rate Limiting
+### 4. Rate Limiting
 
 - Maximum 100 messages/second per connection
 - Excess messages trigger throttling
-- Persistent violations result in disconnect
+- Burst allowance: 20 messages
+- Persistent violations result in disconnect (close code 4002)
+- Rate limit status in `flow_control` messages
 
 ### 4. Command Execution
 

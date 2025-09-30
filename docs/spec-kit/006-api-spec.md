@@ -19,15 +19,260 @@ The web-terminal REST API provides HTTP endpoints for session management, config
 
 ## Authentication
 
-### Bearer Token Authentication
+### JWT Bearer Token Authentication
 
 All API requests require a valid JWT token in the Authorization header:
 
 ```http
-Authorization: Bearer <token>
+Authorization: Bearer <jwt_token>
 ```
 
-### Obtain Token
+The server validates JWT tokens using JWKS (JSON Web Key Set) discovery, supporting both self-issued tokens and external identity providers like Backstage.
+
+### JWT Token Format
+
+Tokens must be valid JWTs (RFC 7519) with the following structure:
+
+**Header:**
+```json
+{
+  "alg": "RS256",
+  "typ": "JWT",
+  "kid": "key-id-123"
+}
+```
+
+**Required Claims:**
+- `sub`: Subject (user identifier, e.g., `user:default/alice` for Backstage)
+- `exp`: Expiration timestamp (Unix epoch)
+- `iat`: Issued at timestamp (Unix epoch)
+- `iss`: Token issuer URL (must match configured JWKS provider)
+
+**Optional Claims (Backstage Integration):**
+- `ent`: Entity ownership array (e.g., `["user:default/alice", "group:default/developers"]`)
+- `aud`: Audience (token intended recipient)
+- `nbf`: Not before timestamp
+
+**Example Token Payload:**
+```json
+{
+  "sub": "user:default/alice",
+  "iss": "https://backstage.example.com",
+  "aud": "web-terminal",
+  "exp": 1727610000,
+  "iat": 1727606400,
+  "ent": [
+    "user:default/alice",
+    "group:default/developers",
+    "group:default/platform-team"
+  ]
+}
+```
+
+### JWKS Discovery
+
+The server fetches public keys from the configured JWKS endpoint to validate token signatures:
+
+**Configuration:**
+```toml
+[security]
+jwks_url = "https://backstage.example.com/.well-known/jwks.json"
+jwks_refresh_interval = 3600  # seconds
+issuer = "https://backstage.example.com"
+```
+
+**JWKS Endpoint Format:**
+```http
+GET https://backstage.example.com/.well-known/jwks.json
+
+Response: 200 OK
+{
+  "keys": [
+    {
+      "kty": "RSA",
+      "kid": "key-id-123",
+      "use": "sig",
+      "alg": "RS256",
+      "n": "0vx7agoebGcQSuuPiLJ...",
+      "e": "AQAB"
+    }
+  ]
+}
+```
+
+### JWT Token Requirements
+
+**Validation Rules:**
+
+1. **Signature Verification:**
+   - Token signature MUST be verified using JWKS public key
+   - `kid` (key ID) in token header MUST match a key in JWKS
+   - Algorithm MUST be RS256 (RSA with SHA-256)
+
+2. **Required Claims Validation:**
+   - `sub`: MUST be present and non-empty
+   - `exp`: MUST be present and in the future (Unix timestamp)
+   - `iat`: MUST be present and not in the future
+   - `iss`: MUST match configured issuer URL
+
+3. **Optional Claims Validation:**
+   - `nbf` (not before): If present, current time MUST be >= nbf
+   - `aud` (audience): If present, MUST contain expected audience value
+   - `ent` (entities): If present, MUST be a valid array of strings
+
+4. **Security Checks:**
+   - Token MUST NOT be expired (`exp` > current time)
+   - Token MUST NOT be used before valid (`nbf` <= current time, if present)
+   - Issuer MUST match configured issuer exactly
+   - Token age MUST be reasonable (reject if `iat` is too old, e.g., > 24 hours)
+
+**Backstage Token Claims:**
+
+When integrating with Backstage, tokens include:
+- `sub`: User entity reference (format: `user:default/username` or `user:namespace/username`)
+- `ent`: Array of owned entities including user and groups (format: `["user:default/alice", "group:default/developers"]`)
+- `iss`: Backstage instance URL (e.g., `https://backstage.example.com`)
+
+**Example Valid Token:**
+```json
+{
+  "alg": "RS256",
+  "kid": "backstage-key-2025",
+  "typ": "JWT"
+}
+{
+  "sub": "user:default/alice",
+  "iss": "https://backstage.example.com",
+  "aud": "web-terminal",
+  "exp": 1727610000,
+  "iat": 1727606400,
+  "nbf": 1727606400,
+  "ent": [
+    "user:default/alice",
+    "group:default/developers",
+    "group:default/platform-team"
+  ]
+}
+```
+
+### Authorization
+
+Access control supports both user-based and group-based authorization:
+
+**User Authorization:**
+- Token's `sub` claim must match allowed user list
+- Example: `sub: "user:default/alice"` matches allowed user `"user:default/alice"`
+
+**Group Authorization (Backstage):**
+- Any entity in `ent` array matches allowed groups
+- Example: `ent: ["user:default/alice", "group:default/developers"]` grants access if `"group:default/developers"` is in allowed groups
+
+**Authorization Flow:**
+1. Extract `sub` claim from validated token
+2. Check if `sub` is in `allowed_users` list → **ALLOW**
+3. If `ent` claim exists, check if any entity is in `allowed_groups` list → **ALLOW**
+4. If `require_group` is true and no group matches → **DENY (403)**
+5. If no authorization rules match → **DENY (403)**
+
+**Configuration:**
+```toml
+[security.authorization]
+allowed_users = ["user:default/alice", "user:default/bob"]
+allowed_groups = ["group:default/developers", "group:default/admins"]
+require_group = false  # If true, at least one group membership required
+```
+
+**Authorization Examples:**
+
+| Token `sub` | Token `ent` | Allowed Users | Allowed Groups | Result |
+|-------------|-------------|---------------|----------------|--------|
+| `user:default/alice` | `["user:default/alice", "group:default/devs"]` | `["user:default/alice"]` | `[]` | ✅ ALLOW (user match) |
+| `user:default/bob` | `["user:default/bob", "group:default/devs"]` | `[]` | `["group:default/devs"]` | ✅ ALLOW (group match) |
+| `user:default/charlie` | `["user:default/charlie"]` | `[]` | `["group:default/devs"]` | ❌ DENY 403 (no match) |
+| `user:default/alice` | `["user:default/alice"]` | `[]` | `["group:default/devs"]` | ❌ DENY 403 if `require_group=true` |
+
+### Authentication Endpoints
+
+#### Get Token Info
+
+Retrieve information about the current token:
+
+```http
+GET /api/v1/auth/info
+Authorization: Bearer <token>
+
+Response: 200 OK
+{
+  "valid": true,
+  "sub": "user:default/alice",
+  "iss": "https://backstage.example.com",
+  "exp": 1727610000,
+  "iat": 1727606400,
+  "entities": [
+    "user:default/alice",
+    "group:default/developers"
+  ],
+  "expires_in": 3600
+}
+```
+
+#### Validate Token
+
+Explicitly validate a token:
+
+```http
+POST /api/v1/auth/validate
+Content-Type: application/json
+
+{
+  "token": "eyJhbGc..."
+}
+
+Response: 200 OK
+{
+  "valid": true,
+  "sub": "user:default/alice",
+  "authorized": true,
+  "expires_at": "2025-09-29T10:00:00Z"
+}
+
+Response: 401 Unauthorized (invalid token)
+{
+  "error": {
+    "code": "JWT_INVALID",
+    "message": "Token signature verification failed",
+    "details": {
+      "reason": "signature_mismatch"
+    }
+  }
+}
+```
+
+#### JWKS Endpoint (Optional)
+
+If server acts as identity provider, it can serve its own JWKS:
+
+```http
+GET /api/v1/.well-known/jwks.json
+
+Response: 200 OK
+{
+  "keys": [
+    {
+      "kty": "RSA",
+      "kid": "web-terminal-2025",
+      "use": "sig",
+      "alg": "RS256",
+      "n": "xGOr-H7A...",
+      "e": "AQAB"
+    }
+  ]
+}
+```
+
+### Obtain Token (Local Auth)
+
+For local authentication (when not using external IDP):
 
 ```http
 POST /api/v1/auth/login
@@ -42,12 +287,22 @@ Response: 200 OK
 {
   "access_token": "eyJhbGc...",
   "refresh_token": "eyJhbGc...",
+  "token_type": "Bearer",
   "expires_at": "2025-09-29T10:00:00Z",
-  "user_id": "user123"
+  "expires_in": 3600,
+  "user_id": "user:default/alice"
+}
+
+Response: 401 Unauthorized
+{
+  "error": {
+    "code": "INVALID_CREDENTIALS",
+    "message": "Invalid username or password"
+  }
 }
 ```
 
-### Refresh Token
+### Refresh Token (Local Auth)
 
 ```http
 POST /api/v1/auth/refresh
@@ -60,7 +315,36 @@ Content-Type: application/json
 Response: 200 OK
 {
   "access_token": "eyJhbGc...",
-  "expires_at": "2025-09-29T10:00:00Z"
+  "token_type": "Bearer",
+  "expires_at": "2025-09-29T10:00:00Z",
+  "expires_in": 3600
+}
+
+Response: 401 Unauthorized
+{
+  "error": {
+    "code": "JWT_EXPIRED",
+    "message": "Refresh token has expired"
+  }
+}
+```
+
+### Logout
+
+Invalidate current session:
+
+```http
+POST /api/v1/auth/logout
+Authorization: Bearer <token>
+
+Response: 204 No Content
+
+Response: 401 Unauthorized
+{
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Invalid or missing authentication token"
+  }
 }
 ```
 
@@ -72,7 +356,7 @@ Response: 200 OK
 
 ```http
 POST /api/v1/sessions
-Authorization: Bearer <token>
+Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
 Content-Type: application/json
 
 {
@@ -85,12 +369,36 @@ Content-Type: application/json
 Response: 201 Created
 {
   "id": "session123",
-  "user_id": "user123",
+  "user_id": "user:default/alice",
   "created_at": "2025-09-29T09:00:00Z",
   "state": {
     "working_dir": "/workspace",
     "environment": {},
     "processes": []
+  }
+}
+
+Response: 401 Unauthorized (JWT invalid/expired)
+{
+  "error": {
+    "code": "JWT_EXPIRED",
+    "message": "JWT token has expired",
+    "details": {
+      "expired_at": "2025-09-29T08:00:00Z"
+    }
+  },
+  "www_authenticate": "Bearer realm=\"web-terminal\", error=\"invalid_token\", error_description=\"JWT token has expired\""
+}
+
+Response: 403 Forbidden (user not authorized)
+{
+  "error": {
+    "code": "UNAUTHORIZED_USER",
+    "message": "User is not authorized to create sessions",
+    "details": {
+      "user": "user:default/alice",
+      "required_groups": ["group:default/developers"]
+    }
   }
 }
 ```
@@ -551,7 +859,13 @@ Response: 204 No Content
 |------|-------------|-------------|
 | `INVALID_REQUEST` | 400 | Malformed request |
 | `UNAUTHORIZED` | 401 | Authentication required |
+| `JWT_INVALID` | 401 | JWT token is invalid or malformed |
+| `JWT_EXPIRED` | 401 | JWT token has expired |
+| `JWT_SIGNATURE_INVALID` | 401 | JWT signature verification failed |
+| `INVALID_CREDENTIALS` | 401 | Invalid username or password |
 | `FORBIDDEN` | 403 | Permission denied |
+| `UNAUTHORIZED_USER` | 403 | User not in allowed users list |
+| `UNAUTHORIZED_GROUP` | 403 | User not in any allowed groups |
 | `NOT_FOUND` | 404 | Resource not found |
 | `SESSION_NOT_FOUND` | 404 | Session doesn't exist |
 | `USER_NOT_FOUND` | 404 | User doesn't exist |
@@ -559,6 +873,67 @@ Response: 204 No Content
 | `SESSION_LIMIT_EXCEEDED` | 429 | Too many sessions |
 | `RATE_LIMIT_EXCEEDED` | 429 | Too many requests |
 | `INTERNAL_ERROR` | 500 | Server error |
+| `JWKS_UNAVAILABLE` | 503 | JWKS endpoint unreachable |
+
+---
+
+## Security Headers
+
+### WWW-Authenticate Challenge
+
+When authentication fails (401 Unauthorized), the server includes a `WWW-Authenticate` header:
+
+```http
+WWW-Authenticate: Bearer realm="web-terminal", error="invalid_token", error_description="JWT token has expired"
+```
+
+**Error Types:**
+- `invalid_token`: Token is malformed, expired, or signature invalid
+- `invalid_request`: Missing or malformed Authorization header
+- `insufficient_scope`: Token lacks required permissions
+
+### Token Expiration Warnings
+
+Responses include expiration information in custom headers when token is near expiry:
+
+```http
+X-Token-Expires-In: 300
+X-Token-Expires-At: 2025-09-29T10:00:00Z
+X-Token-Refresh-Recommended: true
+```
+
+**Headers:**
+- `X-Token-Expires-In`: Seconds until token expiry
+- `X-Token-Expires-At`: ISO 8601 timestamp of expiry
+- `X-Token-Refresh-Recommended`: Present when < 5 minutes remain
+
+### CORS Headers
+
+For cross-origin requests, the server includes appropriate CORS headers:
+
+```http
+Access-Control-Allow-Origin: https://backstage.example.com
+Access-Control-Allow-Methods: GET, POST, PUT, DELETE, PATCH
+Access-Control-Allow-Headers: Authorization, Content-Type
+Access-Control-Max-Age: 3600
+Access-Control-Allow-Credentials: true
+```
+
+### Security Best Practices
+
+**Token Handling:**
+- Always use HTTPS in production
+- Never log or expose tokens in error messages
+- Rotate JWKS keys regularly (recommended: 90 days)
+- Implement token revocation for compromised tokens
+- Set reasonable token expiration (recommended: 1 hour access, 7 days refresh)
+
+**Authorization:**
+- Validate token signature before processing claims
+- Check `exp`, `nbf`, and `iat` claims
+- Verify `iss` matches expected issuer
+- Validate `aud` if used
+- Cache JWKS keys but refresh periodically
 
 ---
 
@@ -608,4 +983,5 @@ GET /api/v1/openapi.json
 
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
+| 1.1.0 | 2025-09-29 | System Architecture Designer | Added JWT authentication with JWKS support, Backstage integration, authorization flows, security headers, and JWT-specific error codes |
 | 1.0.0 | 2025-09-29 | Liam Helmer | Initial API specification |

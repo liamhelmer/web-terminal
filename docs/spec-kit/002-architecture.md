@@ -40,6 +40,7 @@ Web-Terminal follows a client-server architecture with WebSocket-based real-time
 │  └─────────────────────────────────────────────────────────┘   │
 └──────────────────────┬──────────────────────────────────────────┘
                        │ WebSocket/HTTPS (Single Port)
+                       │ + JWT Token (Authorization header)
 ┌──────────────────────▼──────────────────────────────────────────┐
 │                        Server Layer                              │
 │  ┌─────────────────────────────────────────────────────────┐   │
@@ -48,6 +49,20 @@ Web-Terminal follows a client-server architecture with WebSocket-based real-time
 │  │  │   HTTP     │  │  WebSocket   │  │  Session      │  │   │
 │  │  │  Handler   │  │   Handler    │  │  Manager      │  │   │
 │  │  └────────────┘  └──────────────┘  └───────────────┘  │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │        Authentication & Authorization Layer             │   │
+│  │  ┌────────────┐  ┌──────────────┐  ┌───────────────┐  │   │
+│  │  │   JWKS     │  │     JWT      │  │    Claims     │  │   │
+│  │  │   Client   │  │   Verifier   │  │   Service     │  │   │
+│  │  └────────────┘  └──────────────┘  └───────────────┘  │   │
+│  │  ┌─────────────────────────────────────────────────┐   │   │
+│  │  │         Authorization Service                   │   │   │
+│  │  │  • User Allowlist Checking                      │   │   │
+│  │  │  • Group Membership Validation                  │   │   │
+│  │  │  • Audit Logging                                │   │   │
+│  │  └─────────────────────────────────────────────────┘   │   │
 │  └─────────────────────────────────────────────────────────┘   │
 │                                                                  │
 │  ┌─────────────────────────────────────────────────────────┐   │
@@ -61,8 +76,8 @@ Web-Terminal follows a client-server architecture with WebSocket-based real-time
 │  ┌─────────────────────────────────────────────────────────┐   │
 │  │               Security Layer (Rust)                     │   │
 │  │  ┌────────────┐  ┌──────────────┐  ┌───────────────┐  │   │
-│  │  │   Auth     │  │   Sandbox    │  │   Resource    │  │   │
-│  │  │  Service   │  │   Manager    │  │   Limiter     │  │   │
+│  │  │   Sandbox  │  │   Resource   │  │   Security    │  │   │
+│  │  │   Manager  │  │   Limiter    │  │   Policies    │  │   │
 │  │  └────────────┘  └──────────────┘  └───────────────┘  │   │
 │  └─────────────────────────────────────────────────────────┘   │
 └──────────────────────────────────────────────────────────────────┘
@@ -354,37 +369,125 @@ pub struct DiskUsage {
 
 ---
 
-### 4. Security Layer
+### 4. Authentication & Authorization Layer
 
-#### 4.1 Authentication Service Component
-**Technology:** Rust + JWT
+#### 4.1 JWKS Client Component
+**Technology:** Rust + reqwest
 **Responsibilities:**
-- Validate authentication tokens
-- Issue session tokens
-- Enforce authentication policies
-- Handle token expiration
-- Support multiple auth methods
+- Fetch JWKS (JSON Web Key Set) from configured providers
+- Cache public keys with configurable TTL
+- Support multiple JWKS providers
+- Handle provider failures gracefully
+- Background key refresh
 
 **Key Interfaces:**
 ```rust
-pub trait AuthService: Send + Sync {
-    async fn authenticate(&self, credentials: Credentials) -> Result<AuthToken>;
-    async fn validate_token(&self, token: &str) -> Result<UserId>;
-    async fn refresh_token(&self, refresh_token: &str) -> Result<AuthToken>;
-    async fn revoke_token(&self, token: &str) -> Result<()>;
+pub trait JwksClient: Send + Sync {
+    async fn fetch_keys(&self, provider: &str) -> Result<Vec<JsonWebKey>>;
+    async fn get_key(&self, kid: &str, provider: &str) -> Result<Option<JsonWebKey>>;
+    fn refresh_keys(&self, provider: &str) -> Result<()>;
 }
 
-pub struct AuthToken {
-    pub access_token: String,
-    pub refresh_token: String,
-    pub expires_at: Instant,
-    pub user_id: UserId,
+pub struct JsonWebKey {
+    pub kid: String,
+    pub kty: String,
+    pub alg: String,
+    pub use_: String,
+    pub n: String,  // RSA modulus
+    pub e: String,  // RSA exponent
 }
 ```
 
 **Key Dependencies:**
-- jsonwebtoken (JWT handling)
-- argon2 (password hashing)
+- reqwest (HTTP client for JWKS fetching)
+- dashmap (concurrent key cache)
+
+#### 4.2 JWT Verifier Component
+**Technology:** Rust + jsonwebtoken
+**Responsibilities:**
+- Validate JWT signatures using JWKS public keys
+- Verify token claims (issuer, audience, expiration)
+- Extract user identity and groups from claims
+- Support multiple signing algorithms (RS256, RS384, RS512)
+
+**Key Interfaces:**
+```rust
+pub trait JwtVerifier: Send + Sync {
+    async fn verify_token(&self, token: &str) -> Result<Claims>;
+    fn extract_user_id(&self, claims: &Claims) -> Result<UserId>;
+    fn extract_groups(&self, claims: &Claims) -> Vec<String>;
+}
+
+pub struct Claims {
+    pub iss: String,        // Issuer
+    pub sub: String,        // Subject (user ID)
+    pub aud: Vec<String>,   // Audience
+    pub exp: i64,           // Expiration time
+    pub nbf: i64,           // Not before
+    pub iat: i64,           // Issued at
+    pub custom: HashMap<String, serde_json::Value>,
+}
+```
+
+**Key Dependencies:**
+- jsonwebtoken (JWT validation)
+- serde_json (claim parsing)
+
+#### 4.3 Claims Service Component
+**Technology:** Rust
+**Responsibilities:**
+- Extract Backstage user entities (e.g., "user:default/john.doe")
+- Extract group memberships (e.g., "group:default/platform-team")
+- Map JWT claims to internal user representation
+- Handle claim format variations across providers
+
+**Key Interfaces:**
+```rust
+pub trait ClaimsService: Send + Sync {
+    fn extract_backstage_entity(&self, claims: &Claims) -> Result<String>;
+    fn extract_groups(&self, claims: &Claims) -> Vec<String>;
+    fn map_to_user(&self, claims: &Claims) -> Result<User>;
+}
+
+pub struct User {
+    pub id: String,           // "user:default/john.doe"
+    pub email: String,
+    pub name: String,
+    pub groups: Vec<String>,  // ["group:default/platform-team"]
+    pub metadata: HashMap<String, String>,
+}
+```
+
+**Key Dependencies:**
+- serde_json (claim extraction)
+
+#### 4.4 Authorization Service Component
+**Technology:** Rust
+**Responsibilities:**
+- Check if user is authorized to access the terminal
+- Enforce allowed users/groups configuration
+- Support wildcard patterns
+- Audit authorization decisions
+
+**Key Interfaces:**
+```rust
+pub trait AuthorizationService: Send + Sync {
+    fn is_authorized(&self, user: &User) -> bool;
+    fn check_user_allowed(&self, user_id: &str) -> bool;
+    fn check_group_allowed(&self, groups: &[String]) -> bool;
+}
+
+pub struct AuthorizationConfig {
+    pub allowed_users: Vec<String>,    // ["user:default/admin", "*"]
+    pub allowed_groups: Vec<String>,   // ["group:default/platform-team"]
+    pub deny_users: Vec<String>,       // Explicit deny list
+    pub deny_groups: Vec<String>,
+}
+```
+
+**Key Dependencies:**
+- regex (pattern matching)
+- tracing (audit logging)
 
 #### 4.2 Sandbox Manager Component
 **Technology:** Rust + OS sandboxing
@@ -595,10 +698,11 @@ pub struct ResourceUsage {
                           ▼
 ┌─────────────────────────────────────────────────────────────┐
 │           Layer 2: Authentication & Authorization            │
-│  • JWT Token Validation                                     │
-│  • Session Token Expiry                                     │
-│  • Role-Based Access Control                                │
-│  • Multi-Factor Authentication (Optional)                   │
+│  • JWT Token Validation (JWKS-based)                        │
+│  • Public Key Signature Verification                        │
+│  • Claims Extraction (User ID, Groups)                      │
+│  • User/Group Authorization                                 │
+│  • Audit Logging                                            │
 └─────────────────────────────────────────────────────────────┘
                           │
                           ▼
@@ -632,15 +736,87 @@ pub struct ResourceUsage {
 ### Security Controls
 
 1. **Encryption**: All data in transit encrypted with TLS 1.3
-2. **Authentication**: JWT tokens with expiration and refresh
-3. **Authorization**: RBAC with principle of least privilege
+2. **Authentication**: JWT/JWKS-based validation with public key cryptography
+3. **Authorization**: User and group-based access control
 4. **Sandboxing**: Process isolation with resource limits
 5. **Input Validation**: All inputs validated and sanitized
-6. **Audit Logging**: All security-relevant events logged
+6. **Audit Logging**: All security-relevant events logged (auth, authz, commands)
 7. **Rate Limiting**: Prevent abuse and DoS attacks
 8. **CSP Headers**: Prevent XSS attacks
 9. **CORS Policy**: Restrict cross-origin requests
-10. **Secrets Management**: No hardcoded secrets, environment variables only
+10. **Secrets Management**: No hardcoded secrets, JWKS public keys only
+
+### Authentication Flow Diagram
+
+```
+┌─────────────┐
+│   Client    │
+│  (Browser)  │
+└──────┬──────┘
+       │ 1. WebSocket + JWT Bearer token
+       ▼
+┌───────────────────────────────────────────────────────┐
+│         Authentication Middleware                      │
+│  1. Extract JWT from Authorization header             │
+│  2. Decode JWT header (kid, alg)                      │
+│  3. Fetch JWKS from provider (cached)                 │
+│  4. Validate signature with public key                │
+│  5. Verify claims (iss, exp, aud)                     │
+│  6. Extract user/groups                               │
+│  7. Check authorization                               │
+└────────────────────┬──────────────────────────────────┘
+                     │ 8. Authorized
+                     ▼
+┌───────────────────────────────────────────────────────┐
+│         Session Manager                               │
+│  • Create session with authenticated user ID          │
+│  • Associate user/groups with session                 │
+│  • Track user activity for audit logs                 │
+└───────────────────────────────────────────────────────┘
+```
+
+### Backstage Integration Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│             Backstage Instance                          │
+│  • User Authentication (OAuth2/OIDC)                    │
+│  • Issues JWT tokens                                    │
+│  • Publishes JWKS at /.well-known/jwks.json            │
+└────────────────────┬────────────────────────────────────┘
+                     │ JWT Token (user:default/john.doe)
+                     │ Groups: [group:default/platform-team]
+                     ▼
+┌─────────────────────────────────────────────────────────┐
+│          Web-Terminal JWKS Client                       │
+│  • Fetch JWKS keys from Backstage                       │
+│  • Cache keys with TTL (default: 1 hour)               │
+│  • Validate JWT signature                              │
+│  • Extract Backstage entity references                 │
+└─────────────────────────────────────────────────────────┘
+                     │ Validated User + Groups
+                     ▼
+┌─────────────────────────────────────────────────────────┐
+│          Authorization Service                          │
+│  • Check allowed_users list                            │
+│  • Check allowed_groups list                           │
+│  • Deny if user/group explicitly blocked               │
+│  • Log authorization decision                          │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Key Rotation Strategy
+
+1. **Provider Side**:
+   - New keys published to JWKS endpoint
+   - Both old and new keys available during rotation
+   - Old keys expire after rotation period (e.g., 24 hours)
+
+2. **Web-Terminal Side**:
+   - JWKS cache TTL triggers key refresh
+   - Background task refreshes keys before expiration
+   - Accepts tokens signed with any valid key in JWKS
+   - Graceful fallback if JWKS endpoint unreachable
 
 ---
 
@@ -868,6 +1044,50 @@ pub struct ResourceUsage {
 **Alternatives Considered:**
 - Chroot: OS-dependent, complex setup
 - Full file system access: Security risk
+
+---
+
+### ADR-006: JWT/JWKS Authentication
+
+**Status:** Accepted
+**Date:** 2025-09-29
+**Context:** Need secure authentication supporting multiple identity providers (Backstage, Auth0, Okta)
+**Decision:** Use JWT-based authentication with JWKS (JSON Web Key Set) for public key validation
+**Consequences:**
+- ✅ Industry standard, well-supported
+- ✅ No shared secrets (public key cryptography)
+- ✅ Supports key rotation seamlessly
+- ✅ Backstage-compatible out of the box
+- ✅ Can integrate with any OAuth2/OIDC provider
+- ✅ Stateless authentication (no session storage required)
+- ❌ Requires JWKS endpoint accessibility from server
+- ❌ Network dependency for key fetching (mitigated by caching)
+
+**Alternatives Considered:**
+- **Shared Secret JWT (HS256)**: Rejected due to:
+  - Requires sharing secret between systems (security risk)
+  - No key rotation support
+  - Not compatible with public identity providers
+
+- **Session-Based Auth**: Rejected due to:
+  - Requires persistent session storage (violates in-memory principle)
+  - Difficult to integrate with external identity providers
+  - Doesn't scale horizontally without sticky sessions
+
+- **API Keys**: Rejected due to:
+  - Less secure than JWT (no expiration, no user context)
+  - Difficult to integrate with Backstage
+  - No group/role information
+
+**Implementation Details:**
+- Fetch JWKS from configured providers (e.g., Backstage `/.well-known/jwks.json`)
+- Cache JWKS keys with configurable TTL (default: 1 hour)
+- Validate JWT signature using RS256/RS384/RS512 algorithms
+- Extract Backstage entity references from claims (`sub`, `ent`, `usc.ownershipEntityRefs`)
+- Support user-based and group-based authorization
+- Audit log all authentication and authorization events
+
+**Full Specification:** See [011-authentication-spec.md](./011-authentication-spec.md)
 
 ---
 

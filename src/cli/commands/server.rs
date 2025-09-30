@@ -28,10 +28,33 @@ pub async fn start(args: StartArgs, config_path: Option<PathBuf>) -> Result<()> 
         println!("For now, run in foreground with Ctrl+C to stop");
     }
 
-    // TODO: Start the actual server
-    // For now, print what would happen
-    println!("\n✅ Server would start on {}:{}", config.host, config.port);
-    println!("🔧 Implementation pending - see src/server/");
+    // Start the actual server
+    // Per spec-kit/003-backend-spec.md: Single-port architecture
+    println!("\n🚀 Starting server...");
+
+    use crate::config::Config as ServerConfig;
+    use crate::server::Server;
+    use crate::session::{SessionManager, SessionConfig};
+
+    // Load server configuration
+    let server_config = ServerConfig::default();
+    let session_config = SessionConfig::default();
+
+    // Create session manager
+    let session_manager = SessionManager::new(session_config);
+
+    // Create and start server
+    // Per spec-kit/011-authentication-spec.md: External JWT authentication only
+    let server = Server::new(server_config, session_manager);
+
+    println!("✅ Server started on {}:{}", config.host, config.port);
+    println!("📡 WebSocket endpoint: ws://{}:{}/ws", config.host, config.port);
+    println!("💚 Health check: http://{}:{}/api/v1/health", config.host, config.port);
+    println!("\n🔐 External JWT authentication enabled (JWKS-based)");
+    println!("⚠️  Configure JWKS providers in config file");
+    println!("\n🛑 Press Ctrl+C to stop");
+
+    server.run().await?;
 
     Ok(())
 }

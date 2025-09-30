@@ -6,6 +6,7 @@ pub mod config;
 pub mod error;
 pub mod execution;
 pub mod filesystem;
+pub mod handlers;
 pub mod monitoring;
 pub mod protocol;
 pub mod pty;

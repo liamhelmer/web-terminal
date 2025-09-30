@@ -386,3 +386,125 @@ async fn test_rapid_create_destroy() {
 
     assert_eq!(manager.count(), 0);
 }
+
+/// Test error handling when resizing non-existent PTY
+#[tokio::test]
+async fn test_resize_nonexistent_pty() {
+    let manager = PtyManager::with_defaults();
+
+    let result = manager.resize("nonexistent-id", 100, 30).await;
+    assert!(result.is_err());
+    assert!(matches!(result.unwrap_err(), PtyError::ProcessNotFound(_)));
+}
+
+/// Test streaming output with non-existent PTY
+#[tokio::test]
+async fn test_stream_output_nonexistent_pty() {
+    let manager = PtyManager::with_defaults();
+    let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
+
+    let result = manager.stream_output("nonexistent-id", tx).await;
+    assert!(result.is_err());
+}
+
+/// Test waiting for non-existent PTY
+#[tokio::test]
+async fn test_wait_nonexistent_pty() {
+    let manager = PtyManager::with_defaults();
+
+    let result = manager.wait("nonexistent-id").await;
+    assert!(result.is_err());
+}
+
+/// Test removing non-existent PTY
+#[test]
+fn test_remove_nonexistent_pty() {
+    let manager = PtyManager::with_defaults();
+
+    let result = manager.remove("nonexistent-id");
+    assert!(result.is_err());
+    assert!(matches!(result.unwrap_err(), PtyError::ProcessNotFound(_)));
+}
+
+/// Test PTY manager with maximum concurrent processes
+///
+/// Per NFR-3.3: Support multiple concurrent users
+#[tokio::test]
+async fn test_maximum_concurrent_processes() {
+    let manager = PtyManager::with_defaults();
+    let mut handles = vec![];
+
+    // Spawn 100 PTY processes
+    for _ in 0..100 {
+        let handle = manager.spawn(None).expect("Failed to spawn PTY");
+        handles.push(handle);
+    }
+
+    assert_eq!(manager.count(), 100);
+
+    // Cleanup
+    manager.kill_all().await.expect("Failed to kill all PTYs");
+    assert_eq!(manager.count(), 0);
+}
+
+/// Test sequential resize operations
+#[tokio::test]
+async fn test_sequential_resize() {
+    let manager = PtyManager::with_defaults();
+
+    // Spawn PTY process
+    let handle = manager.spawn(None).expect("Failed to spawn PTY");
+    let id = handle.id().to_string();
+
+    // Perform sequential resizes
+    for i in 0..10 {
+        let _ = manager.resize(&id, 80 + i, 24 + i).await;
+    }
+
+    // Cleanup
+    manager.kill(&id).await.expect("Failed to kill PTY");
+}
+
+/// Test default configuration
+#[test]
+fn test_pty_manager_default() {
+    let manager = PtyManager::default();
+    assert_eq!(manager.count(), 0);
+}
+
+/// Test kill operation idempotency
+#[tokio::test]
+async fn test_kill_idempotency() {
+    let manager = PtyManager::with_defaults();
+
+    let handle = manager.spawn(None).expect("Failed to spawn PTY");
+    let id = handle.id().to_string();
+
+    // First kill should succeed
+    manager.kill(&id).await.expect("Failed to kill PTY");
+
+    // Second kill should fail (PTY not found)
+    let result = manager.kill(&id).await;
+    assert!(result.is_err());
+}
+
+/// Test listing processes returns correct IDs
+#[tokio::test]
+async fn test_list_returns_correct_ids() {
+    let manager = PtyManager::with_defaults();
+
+    let handle1 = manager.spawn(None).expect("Failed to spawn PTY 1");
+    let handle2 = manager.spawn(None).expect("Failed to spawn PTY 2");
+    let handle3 = manager.spawn(None).expect("Failed to spawn PTY 3");
+
+    let list = manager.list();
+    assert_eq!(list.len(), 3);
+
+    // Verify all IDs are present
+    assert!(list.iter().any(|id| id == handle1.id()));
+    assert!(list.iter().any(|id| id == handle2.id()));
+    assert!(list.iter().any(|id| id == handle3.id()));
+
+    // Cleanup
+    manager.kill_all().await.expect("Failed to kill all PTYs");
+}

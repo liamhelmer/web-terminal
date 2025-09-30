@@ -201,6 +201,14 @@ services:
       - WEB_TERMINAL_LOG_LEVEL=info
       - WEB_TERMINAL_PORT=8080  # Single port configuration
       - RUST_BACKTRACE=1
+
+      # Authentication (Optional - uncomment to enable)
+      # - AUTH_ENABLED=true
+      # - AUTH_JWKS_PROVIDERS=[{"name":"backstage","url":"https://backstage.example.com/.well-known/jwks.json","issuer":"https://backstage.example.com"}]
+      # - AUTH_ALLOWED_USERS=["user:default/admin"]
+      # - AUTH_ALLOWED_GROUPS=["group:default/platform-team"]
+      # - AUTH_JWKS_CACHE_TTL=3600
+      # - AUTH_AUDIT_LOG=true
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/health"]
       interval: 30s
@@ -311,11 +319,27 @@ spec:
           value: "8080"
         - name: WEB_TERMINAL_LOG_LEVEL
           value: "info"
-        - name: WEB_TERMINAL_JWT_SECRET
+
+        # Authentication (Optional)
+        - name: AUTH_ENABLED
+          value: "true"
+        - name: AUTH_JWKS_PROVIDERS
           valueFrom:
-            secretKeyRef:
-              name: web-terminal-secrets
-              key: jwt-secret
+            configMapKeyRef:
+              name: web-terminal-config
+              key: jwks-providers
+        - name: AUTH_ALLOWED_USERS
+          valueFrom:
+            configMapKeyRef:
+              name: web-terminal-config
+              key: allowed-users
+        - name: AUTH_ALLOWED_GROUPS
+          valueFrom:
+            configMapKeyRef:
+              name: web-terminal-config
+              key: allowed-groups
+        - name: AUTH_JWKS_CACHE_TTL
+          value: "3600"
         resources:
           requests:
             memory: "256Mi"
@@ -391,9 +415,17 @@ kubectl create secret generic web-terminal-secrets \
   --from-literal=jwt-secret=$(openssl rand -base64 32) \
   -n web-terminal
 
-# Create config map
+# Create config map (basic)
 kubectl create configmap web-terminal-config \
   --from-file=config.toml \
+  -n web-terminal
+
+# Create config map with authentication settings
+kubectl create configmap web-terminal-config \
+  --from-file=config.toml \
+  --from-literal=jwks-providers='[{"name":"backstage","url":"https://backstage.example.com/.well-known/jwks.json","issuer":"https://backstage.example.com"}]' \
+  --from-literal=allowed-users='["user:default/admin"]' \
+  --from-literal=allowed-groups='["group:default/platform-team"]' \
   -n web-terminal
 
 # Apply deployment
@@ -466,7 +498,57 @@ config/
 ├── config.toml           # Default config
 ├── dev.toml             # Development overrides
 ├── staging.toml         # Staging overrides
-└── production.toml      # Production overrides
+├── production.toml      # Production overrides
+└── auth.yaml            # Authentication configuration (optional)
+```
+
+### Authentication Configuration File
+
+Create `config/auth.yaml` for authentication settings:
+
+```yaml
+# config/auth.yaml
+
+authentication:
+  # Enable authentication (default: false)
+  enabled: true
+
+  # JWKS providers
+  jwks_providers:
+    - name: backstage
+      url: https://backstage.example.com/.well-known/jwks.json
+      issuer: https://backstage.example.com
+      cache_ttl: 3600  # 1 hour
+
+    # Example: Additional provider (Auth0)
+    # - name: auth0
+    #   url: https://tenant.auth0.com/.well-known/jwks.json
+    #   issuer: https://tenant.auth0.com/
+    #   cache_ttl: 3600
+
+  # Authorization
+  authorization:
+    # Allowed users (Backstage entity format)
+    allowed_users:
+      - "user:default/admin"
+      - "user:default/platform-ops"
+
+    # Allowed groups (any member can access)
+    allowed_groups:
+      - "group:default/platform-team"
+      - "group:default/sre-team"
+
+    # Explicit deny list (takes precedence)
+    deny_users: []
+    deny_groups:
+      - "group:default/contractors"
+
+  # Audit logging
+  audit:
+    enabled: true
+    log_file: /app/data/logs/auth-audit.log
+    log_level: info
+    include_claims: false  # Don't log full JWT claims for privacy
 ```
 
 ### Configuration Loading
@@ -480,6 +562,70 @@ WEB_TERMINAL_CONFIG=config/staging.toml web-terminal start
 
 # Production
 WEB_TERMINAL_CONFIG=config/production.toml web-terminal start
+
+# With authentication config
+WEB_TERMINAL_CONFIG=config/production.toml \
+WEB_TERMINAL_AUTH_CONFIG=config/auth.yaml \
+web-terminal start
+```
+
+### Authentication Deployment Considerations
+
+#### JWKS Endpoint Accessibility
+
+**CRITICAL:** The JWKS endpoint must be accessible from the web-terminal server:
+
+```bash
+# Test JWKS endpoint accessibility from your deployment environment
+curl -v https://backstage.example.com/.well-known/jwks.json
+
+# Expected response: HTTP 200 with JSON containing "keys" array
+# If this fails, authentication will not work
+```
+
+**Common Issues:**
+- **DNS Resolution**: Ensure the server can resolve the JWKS hostname
+- **Firewall Rules**: JWKS endpoint must be reachable from the container/pod
+- **TLS Certificates**: Server must trust the JWKS endpoint's TLS certificate
+- **Network Policies**: Kubernetes NetworkPolicies must allow egress to JWKS endpoint
+
+**Docker Considerations:**
+- JWKS URL must be accessible from inside the container
+- Use host network if JWKS is on localhost: `docker run --network=host`
+- For Docker Compose, ensure network connectivity between services
+
+**Kubernetes Considerations:**
+- Add NetworkPolicy allowing egress to JWKS endpoint
+- Ensure CoreDNS can resolve external domains
+- Configure proxy if required for external access
+
+#### Environment Variables for Authentication
+
+```bash
+# Enable authentication
+export AUTH_ENABLED=true
+
+# JWKS providers (JSON format)
+export AUTH_JWKS_PROVIDERS='[
+  {
+    "name": "backstage",
+    "url": "https://backstage.example.com/.well-known/jwks.json",
+    "issuer": "https://backstage.example.com"
+  }
+]'
+
+# Allowed users (Backstage entity format)
+export AUTH_ALLOWED_USERS='["user:default/admin","user:default/platform-ops"]'
+
+# Allowed groups (any member can access)
+export AUTH_ALLOWED_GROUPS='["group:default/platform-team","group:default/sre-team"]'
+
+# JWKS cache TTL (seconds, default: 3600)
+export AUTH_JWKS_CACHE_TTL=3600
+
+# Enable audit logging (default: true if AUTH_ENABLED=true)
+export AUTH_AUDIT_LOG=true
+export AUTH_AUDIT_LOG_FILE=/app/data/logs/auth-audit.log
 ```
 
 ### Secrets Management
@@ -487,8 +633,11 @@ WEB_TERMINAL_CONFIG=config/production.toml web-terminal start
 #### Using Environment Variables
 
 ```bash
-# Never commit secrets to git
-export WEB_TERMINAL_JWT_SECRET=$(openssl rand -base64 32)
+# No shared secrets required for JWKS authentication
+# JWKS uses public key cryptography (no secrets to manage)
+
+# Example: Generate random secret if needed for other purposes
+export WEB_TERMINAL_SESSION_SECRET=$(openssl rand -base64 32)
 ```
 
 #### Using HashiCorp Vault
@@ -1129,6 +1278,14 @@ kubectl rollout history deployment/web-terminal -n production
 - [ ] Changelog updated (auto-generated by release workflow)
 - [ ] Backup completed (automated)
 - [ ] Maintenance window scheduled (if required)
+
+**Authentication Configuration (if enabled):**
+- [ ] JWKS provider URLs configured and accessible
+- [ ] Allowed users/groups configured
+- [ ] JWKS endpoint tested (curl https://backstage.example.com/.well-known/jwks.json)
+- [ ] JWT token validation tested
+- [ ] Audit logging configured and verified
+- [ ] Authentication config mounted in Docker volume
 
 **Failure Policy:** Deployment is BLOCKED ❌ if ANY workflow fails. No exceptions.
 

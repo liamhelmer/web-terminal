@@ -1,10 +1,10 @@
 # Web-Terminal: Rust Backend Specification
 
-**Version:** 1.0.0
+**Version:** 1.1.0
 **Status:** Draft
 **Author:** Liam Helmer
 **Last Updated:** 2025-09-29
-**References:** [002-architecture.md](./002-architecture.md)
+**References:** [002-architecture.md](./002-architecture.md), [011-authentication-spec.md](./011-authentication-spec.md)
 
 ---
 
@@ -12,11 +12,12 @@
 
 1. [Module Structure](#module-structure)
 2. [Core Components](#core-components)
-3. [API Endpoints](#api-endpoints)
-4. [Data Models](#data-models)
-5. [Error Handling](#error-handling)
-6. [Configuration](#configuration)
-7. [Performance Optimizations](#performance-optimizations)
+3. [Authentication & Authorization](#authentication--authorization)
+4. [API Endpoints](#api-endpoints)
+5. [Data Models](#data-models)
+6. [Error Handling](#error-handling)
+7. [Configuration](#configuration)
+8. [Performance Optimizations](#performance-optimizations)
 
 ---
 
@@ -29,7 +30,8 @@ src/
 ├── config/
 │   ├── mod.rs
 │   ├── server.rs             # Server configuration
-│   └── security.rs           # Security configuration
+│   ├── security.rs           # Security configuration
+│   └── jwks.rs               # JWKS provider configuration
 ├── server/
 │   ├── mod.rs
 │   ├── http.rs               # HTTP server setup
@@ -52,7 +54,10 @@ src/
 │   └── operations.rs         # File operations
 ├── security/
 │   ├── mod.rs
-│   ├── auth.rs               # Authentication
+│   ├── auth.rs               # JWT verification & authentication
+│   ├── jwks.rs               # JWKS client and cache
+│   ├── claims.rs             # Claims extraction and validation
+│   ├── authz.rs              # Authorization logic
 │   ├── sandbox.rs            # Sandboxing
 │   ├── limits.rs             # Resource limits
 │   └── validator.rs          # Input validation
@@ -103,7 +108,7 @@ impl Server {
                 .app_data(web::Data::new(self.sessions.clone()))
                 .app_data(web::Data::new(self.auth.clone()))
                 .wrap(middleware::Logger::default())
-                .wrap(middleware::Auth::new(self.auth.clone()))
+                .wrap(middleware::JwtAuth::new(self.auth.clone()))
                 .wrap(middleware::RateLimit::default())
                 .service(routes::health)
                 .service(routes::websocket)
@@ -537,63 +542,578 @@ impl CommandOutput {
 
 ### 4. Security Module
 
-#### 4.1 Authentication Service (src/security/auth.rs)
+**See [011-authentication-spec.md](./011-authentication-spec.md) for complete authentication architecture.**
+
+#### 4.1 JWKS Client (src/security/jwks.rs)
 
 ```rust
-use jsonwebtoken::{encode, decode, Header, Validation, EncodingKey, DecodingKey};
+use std::sync::Arc;
+use tokio::sync::RwLock;
+use reqwest::Client;
+use serde::{Deserialize, Serialize};
+use jsonwebtoken::jwk::JwkSet;
 
-pub struct AuthService {
-    encoding_key: EncodingKey,
-    decoding_key: DecodingKey,
-    validation: Validation,
+/// JWKS client for fetching and caching public keys from multiple providers
+pub struct JwksClient {
+    client: Client,
+    cache: Arc<RwLock<JwksCache>>,
+    providers: Vec<JwksProvider>,
 }
 
-impl AuthService {
-    pub fn new(secret: &[u8]) -> Self {
+#[derive(Debug, Clone)]
+pub struct JwksProvider {
+    pub name: String,
+    pub jwks_uri: String,
+    pub issuer: String,
+    pub audience: Option<String>,
+}
+
+#[derive(Debug)]
+struct JwksCache {
+    keys: HashMap<String, CachedKey>,
+}
+
+#[derive(Debug, Clone)]
+struct CachedKey {
+    jwk: Jwk,
+    cached_at: Instant,
+    expires_at: Option<Instant>,
+}
+
+impl JwksClient {
+    pub fn new(providers: Vec<JwksProvider>) -> Self {
         Self {
-            encoding_key: EncodingKey::from_secret(secret),
-            decoding_key: DecodingKey::from_secret(secret),
-            validation: Validation::default(),
+            client: Client::builder()
+                .timeout(Duration::from_secs(10))
+                .build()
+                .expect("Failed to create HTTP client"),
+            cache: Arc::new(RwLock::new(JwksCache {
+                keys: HashMap::new(),
+            })),
+            providers,
         }
     }
 
-    pub async fn authenticate(&self, credentials: Credentials) -> Result<AuthToken> {
-        // Validate credentials (implement your auth logic)
-        let user_id = self.validate_credentials(&credentials).await?;
-
-        // Create JWT claims
-        let claims = Claims {
-            sub: user_id.to_string(),
-            exp: (Utc::now() + Duration::hours(8)).timestamp() as usize,
-            iat: Utc::now().timestamp() as usize,
-        };
-
-        // Generate token
-        let token = encode(&Header::default(), &claims, &self.encoding_key)?;
-
-        Ok(AuthToken {
-            access_token: token,
-            expires_at: Instant::now() + Duration::from_secs(8 * 3600),
-            user_id,
-        })
+    /// Fetch JWKS from all configured providers
+    pub async fn refresh_all(&self) -> Result<()> {
+        for provider in &self.providers {
+            if let Err(e) = self.refresh_provider(provider).await {
+                tracing::error!("Failed to refresh JWKS for {}: {}", provider.name, e);
+            }
+        }
+        Ok(())
     }
 
-    pub async fn validate_token(&self, token: &str) -> Result<UserId> {
-        let token_data = decode::<Claims>(
-            token,
-            &self.decoding_key,
-            &self.validation,
-        )?;
+    /// Fetch JWKS from specific provider
+    async fn refresh_provider(&self, provider: &JwksProvider) -> Result<()> {
+        let response = self.client.get(&provider.jwks_uri).send().await?;
+        let jwks: JwkSet = response.json().await?;
 
-        Ok(UserId::from_str(&token_data.claims.sub)?)
+        let mut cache = self.cache.write().await;
+        let now = Instant::now();
+
+        for jwk in jwks.keys {
+            if let Some(kid) = &jwk.common.key_id {
+                cache.keys.insert(
+                    kid.clone(),
+                    CachedKey {
+                        jwk,
+                        cached_at: now,
+                        expires_at: Some(now + Duration::from_secs(3600)), // 1 hour cache
+                    },
+                );
+            }
+        }
+
+        tracing::info!("Refreshed JWKS for provider: {}", provider.name);
+        Ok(())
+    }
+
+    /// Get signing key by kid
+    pub async fn get_key(&self, kid: &str) -> Result<DecodingKey> {
+        let cache = self.cache.read().await;
+
+        if let Some(cached) = cache.keys.get(kid) {
+            // Check if expired
+            if let Some(expires_at) = cached.expires_at {
+                if Instant::now() > expires_at {
+                    drop(cache);
+                    self.refresh_all().await?;
+                    return self.get_key(kid).await;
+                }
+            }
+
+            return DecodingKey::from_jwk(&cached.jwk)
+                .map_err(|e| Error::JwksError(e.to_string()));
+        }
+
+        Err(Error::KeyNotFound(kid.to_string()))
+    }
+
+    /// Get provider config by issuer
+    pub fn get_provider(&self, issuer: &str) -> Option<&JwksProvider> {
+        self.providers.iter().find(|p| p.issuer == issuer)
+    }
+}
+```
+
+#### 4.2 JWT Authentication Service (src/security/auth.rs)
+
+```rust
+use jsonwebtoken::{decode, decode_header, Algorithm, DecodingKey, Validation};
+use crate::security::claims::BackstageClaims;
+use crate::security::jwks::JwksClient;
+
+pub struct AuthService {
+    jwks_client: Arc<JwksClient>,
+    validation_config: ValidationConfig,
+}
+
+#[derive(Debug, Clone)]
+pub struct ValidationConfig {
+    pub allowed_issuers: Vec<String>,
+    pub required_audience: Option<String>,
+    pub algorithms: Vec<Algorithm>,
+    pub validate_exp: bool,
+    pub validate_nbf: bool,
+    pub leeway: u64,
+}
+
+impl Default for ValidationConfig {
+    fn default() -> Self {
+        Self {
+            allowed_issuers: Vec::new(),
+            required_audience: None,
+            algorithms: vec![Algorithm::RS256, Algorithm::ES256],
+            validate_exp: true,
+            validate_nbf: true,
+            leeway: 60, // 60 seconds
+        }
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct Claims {
-    sub: String,
-    exp: usize,
-    iat: usize,
+impl AuthService {
+    pub fn new(jwks_client: Arc<JwksClient>, config: ValidationConfig) -> Self {
+        Self {
+            jwks_client,
+            validation_config: config,
+        }
+    }
+
+    /// Verify and decode JWT token
+    pub async fn verify_token(&self, token: &str) -> Result<BackstageClaims> {
+        // Decode header to get kid and algorithm
+        let header = decode_header(token)?;
+
+        let kid = header
+            .kid
+            .ok_or_else(|| Error::InvalidToken("Missing kid in token header".to_string()))?;
+
+        // Get decoding key from JWKS
+        let decoding_key = self.jwks_client.get_key(&kid).await?;
+
+        // Configure validation
+        let mut validation = Validation::new(
+            header.alg
+        );
+
+        validation.set_issuer(&self.validation_config.allowed_issuers);
+
+        if let Some(aud) = &self.validation_config.required_audience {
+            validation.set_audience(&[aud]);
+        }
+
+        validation.validate_exp = self.validation_config.validate_exp;
+        validation.validate_nbf = self.validation_config.validate_nbf;
+        validation.leeway = self.validation_config.leeway;
+
+        // Decode and verify token
+        let token_data = decode::<BackstageClaims>(
+            token,
+            &decoding_key,
+            &validation,
+        )?;
+
+        // Verify issuer is in provider list
+        let issuer = token_data.claims.iss.as_deref()
+            .ok_or_else(|| Error::InvalidToken("Missing issuer".to_string()))?;
+
+        if !self.validation_config.allowed_issuers.contains(&issuer.to_string()) {
+            return Err(Error::InvalidToken(format!("Untrusted issuer: {}", issuer)));
+        }
+
+        Ok(token_data.claims)
+    }
+
+    /// Extract claims from request
+    pub async fn authenticate_request(
+        &self,
+        auth_header: Option<&str>,
+    ) -> Result<BackstageClaims> {
+        let token = auth_header
+            .and_then(|h| h.strip_prefix("Bearer "))
+            .ok_or(Error::MissingAuthHeader)?;
+
+        self.verify_token(token).await
+    }
+}
+```
+
+#### 4.3 Claims Extraction (src/security/claims.rs)
+
+```rust
+use serde::{Deserialize, Serialize};
+
+/// Backstage-compatible JWT claims
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BackstageClaims {
+    // Standard JWT claims
+    pub sub: String,           // Subject: "user:default/username"
+    pub iss: Option<String>,   // Issuer
+    pub aud: Option<Vec<String>>, // Audience
+    pub exp: usize,            // Expiration time
+    pub iat: usize,            // Issued at
+    pub nbf: Option<usize>,    // Not before
+
+    // Backstage-specific claims
+    pub ent: Vec<String>,      // Entity references (ownership)
+
+    // Optional claims
+    pub email: Option<String>,
+    pub name: Option<String>,
+    pub groups: Option<Vec<String>>,
+}
+
+impl BackstageClaims {
+    /// Extract user ID from subject claim
+    pub fn user_id(&self) -> Result<String> {
+        // Parse "user:default/username" format
+        if let Some(user_ref) = self.sub.strip_prefix("user:") {
+            if let Some((_namespace, username)) = user_ref.split_once('/') {
+                return Ok(username.to_string());
+            }
+        }
+
+        // Fallback to full subject
+        Ok(self.sub.clone())
+    }
+
+    /// Get owned entity references
+    pub fn owned_entities(&self) -> &[String] {
+        &self.ent
+    }
+
+    /// Check if user is in group
+    pub fn is_in_group(&self, group: &str) -> bool {
+        self.groups
+            .as_ref()
+            .map(|g| g.iter().any(|gn| gn == group))
+            .unwrap_or(false)
+    }
+
+    /// Get email or None
+    pub fn email(&self) -> Option<&str> {
+        self.email.as_deref()
+    }
+}
+```
+
+#### 4.4 Authorization Service (src/security/authz.rs)
+
+```rust
+use crate::security::claims::BackstageClaims;
+
+pub struct AuthorizationService {
+    rules: Vec<AuthzRule>,
+}
+
+#[derive(Debug, Clone)]
+pub struct AuthzRule {
+    pub resource: String,
+    pub action: String,
+    pub allowed_groups: Vec<String>,
+    pub allowed_users: Vec<String>,
+}
+
+impl AuthorizationService {
+    pub fn new(rules: Vec<AuthzRule>) -> Self {
+        Self { rules }
+    }
+
+    /// Check if user is authorized for action on resource
+    pub fn authorize(
+        &self,
+        claims: &BackstageClaims,
+        resource: &str,
+        action: &str,
+    ) -> Result<bool> {
+        let user_id = claims.user_id()?;
+
+        for rule in &self.rules {
+            if rule.resource == resource && rule.action == action {
+                // Check user whitelist
+                if rule.allowed_users.contains(&user_id) {
+                    return Ok(true);
+                }
+
+                // Check group membership
+                if let Some(groups) = &claims.groups {
+                    for group in groups {
+                        if rule.allowed_groups.contains(group) {
+                            return Ok(true);
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(false)
+    }
+
+    /// Check session creation authorization
+    pub fn can_create_session(&self, claims: &BackstageClaims) -> Result<bool> {
+        self.authorize(claims, "terminal", "create_session")
+    }
+
+    /// Check command execution authorization
+    pub fn can_execute_command(&self, claims: &BackstageClaims) -> Result<bool> {
+        self.authorize(claims, "terminal", "execute_command")
+    }
+}
+
+/// Default authorization rules
+pub fn default_authz_rules() -> Vec<AuthzRule> {
+    vec![
+        AuthzRule {
+            resource: "terminal".to_string(),
+            action: "create_session".to_string(),
+            allowed_groups: vec!["developers".to_string(), "admins".to_string()],
+            allowed_users: vec![],
+        },
+        AuthzRule {
+            resource: "terminal".to_string(),
+            action: "execute_command".to_string(),
+            allowed_groups: vec!["developers".to_string(), "admins".to_string()],
+            allowed_users: vec![],
+        },
+    ]
+}
+```
+
+#### 4.5 JWT Authentication Middleware (src/server/middleware.rs)
+
+```rust
+use actix_web::{
+    dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
+    Error, HttpMessage, HttpResponse,
+};
+use futures_util::future::LocalBoxFuture;
+use std::future::{ready, Ready};
+
+pub struct JwtAuth {
+    auth_service: Arc<AuthService>,
+}
+
+impl JwtAuth {
+    pub fn new(auth_service: Arc<AuthService>) -> Self {
+        Self { auth_service }
+    }
+}
+
+impl<S, B> Transform<S, ServiceRequest> for JwtAuth
+where
+    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
+    S::Future: 'static,
+    B: 'static,
+{
+    type Response = ServiceResponse<B>;
+    type Error = Error;
+    type InitError = ();
+    type Transform = JwtAuthMiddleware<S>;
+    type Future = Ready<Result<Self::Transform, Self::InitError>>;
+
+    fn new_transform(&self, service: S) -> Self::Future {
+        ready(Ok(JwtAuthMiddleware {
+            service,
+            auth_service: self.auth_service.clone(),
+        }))
+    }
+}
+
+pub struct JwtAuthMiddleware<S> {
+    service: S,
+    auth_service: Arc<AuthService>,
+}
+
+impl<S, B> Service<ServiceRequest> for JwtAuthMiddleware<S>
+where
+    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
+    S::Future: 'static,
+    B: 'static,
+{
+    type Response = ServiceResponse<B>;
+    type Error = Error;
+    type Future = LocalBoxFuture<'static, Result<Self::Response, Self::Error>>;
+
+    forward_ready!(service);
+
+    fn call(&self, req: ServiceRequest) -> Self::Future {
+        // Skip auth for health endpoint
+        if req.path() == "/health" {
+            let fut = self.service.call(req);
+            return Box::pin(async move { fut.await });
+        }
+
+        let auth_service = self.auth_service.clone();
+        let auth_header = req
+            .headers()
+            .get("Authorization")
+            .and_then(|h| h.to_str().ok())
+            .map(|s| s.to_string());
+
+        Box::pin(async move {
+            match auth_header {
+                Some(header) => {
+                    // Verify token
+                    match auth_service.authenticate_request(Some(&header)).await {
+                        Ok(claims) => {
+                            // Store claims in request extensions
+                            req.extensions_mut().insert(claims);
+
+                            // Continue with request
+                            let fut = self.service.call(req);
+                            fut.await
+                        }
+                        Err(e) => {
+                            tracing::warn!("Authentication failed: {}", e);
+                            Err(actix_web::error::ErrorUnauthorized("Invalid token"))
+                        }
+                    }
+                }
+                None => Err(actix_web::error::ErrorUnauthorized("Missing authorization header")),
+            }
+        })
+    }
+}
+
+/// Extract claims from request extensions
+pub fn extract_claims(req: &HttpRequest) -> Result<BackstageClaims> {
+    req.extensions()
+        .get::<BackstageClaims>()
+        .cloned()
+        .ok_or(Error::Unauthorized)
+}
+```
+
+---
+
+## Authentication & Authorization
+
+### Overview
+
+The backend implements JWT-based authentication with JWKS (JSON Web Key Set) support for secure token verification. This enables integration with enterprise identity providers like Backstage, Keycloak, Auth0, etc.
+
+### Key Features
+
+1. **JWKS Support**: Fetches and caches public keys from multiple identity providers
+2. **Multi-Provider**: Supports multiple JWT issuers simultaneously
+3. **Backstage Compatible**: Parses Backstage-specific claims (entity references, ownership)
+4. **Role-Based Authorization**: Group and user-based access control
+5. **Automatic Key Rotation**: Refreshes JWKS keys with expiration handling
+6. **Middleware Integration**: Transparent authentication for all protected routes
+
+### Authentication Flow
+
+```
+1. Client sends request with JWT in Authorization header
+   ↓
+2. JwtAuthMiddleware extracts token
+   ↓
+3. AuthService decodes token header to get kid (key ID)
+   ↓
+4. JwksClient retrieves corresponding public key (cached or fetched)
+   ↓
+5. Token is verified using public key
+   ↓
+6. Claims are extracted and validated
+   ↓
+7. AuthorizationService checks permissions
+   ↓
+8. Request proceeds with user context in extensions
+```
+
+### Configuration Example
+
+```rust
+// Configure JWKS providers
+let providers = vec![
+    JwksProvider {
+        name: "backstage".to_string(),
+        jwks_uri: "https://backstage.example.com/.well-known/jwks.json".to_string(),
+        issuer: "https://backstage.example.com".to_string(),
+        audience: Some("web-terminal".to_string()),
+    },
+];
+
+// Initialize JWKS client
+let jwks_client = Arc::new(JwksClient::new(providers));
+
+// Configure validation
+let validation_config = ValidationConfig {
+    allowed_issuers: vec!["https://backstage.example.com".to_string()],
+    required_audience: Some("web-terminal".to_string()),
+    algorithms: vec![Algorithm::RS256, Algorithm::ES256],
+    validate_exp: true,
+    validate_nbf: true,
+    leeway: 60,
+};
+
+// Create auth service
+let auth_service = Arc::new(AuthService::new(jwks_client.clone(), validation_config));
+
+// Configure authorization rules
+let authz_rules = default_authz_rules();
+let authz_service = Arc::new(AuthorizationService::new(authz_rules));
+
+// Background task to refresh JWKS
+tokio::spawn(async move {
+    let mut interval = tokio::time::interval(Duration::from_secs(3600));
+    loop {
+        interval.tick().await;
+        if let Err(e) = jwks_client.refresh_all().await {
+            tracing::error!("Failed to refresh JWKS: {}", e);
+        }
+    }
+});
+```
+
+### Usage in Handlers
+
+```rust
+use actix_web::{web, HttpRequest, HttpResponse};
+use crate::security::claims::BackstageClaims;
+use crate::server::middleware::extract_claims;
+
+async fn create_session(
+    req: HttpRequest,
+    session_manager: web::Data<Arc<SessionManager>>,
+    authz: web::Data<Arc<AuthorizationService>>,
+) -> Result<HttpResponse> {
+    // Extract claims from middleware
+    let claims = extract_claims(&req)?;
+
+    // Check authorization
+    if !authz.can_create_session(&claims)? {
+        return Err(Error::Unauthorized);
+    }
+
+    // Get user ID
+    let user_id = claims.user_id()?;
+
+    // Create session
+    let session = session_manager.create_session(user_id).await?;
+
+    Ok(HttpResponse::Ok().json(session))
 }
 ```
 
@@ -662,12 +1182,14 @@ pub enum ConnectionStatus {
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
+    // Session errors
     #[error("Session not found")]
     SessionNotFound,
 
     #[error("Session limit exceeded")]
     SessionLimitExceeded,
 
+    // Command execution errors
     #[error("Invalid command: {0}")]
     InvalidCommand(String),
 
@@ -677,20 +1199,88 @@ pub enum Error {
     #[error("Resource limit exceeded: {0}")]
     ResourceLimitExceeded(String),
 
+    // Authentication errors
     #[error("Authentication failed")]
     AuthenticationFailed,
 
-    #[error("Invalid token")]
-    InvalidToken,
+    #[error("Missing authorization header")]
+    MissingAuthHeader,
 
+    #[error("Invalid token: {0}")]
+    InvalidToken(String),
+
+    #[error("Unauthorized")]
+    Unauthorized,
+
+    // JWKS errors
+    #[error("JWKS error: {0}")]
+    JwksError(String),
+
+    #[error("Key not found: {0}")]
+    KeyNotFound(String),
+
+    #[error("Failed to fetch JWKS: {0}")]
+    JwksFetchError(String),
+
+    // Authorization errors
+    #[error("Authorization denied for resource '{0}' action '{1}'")]
+    AuthorizationDenied(String, String),
+
+    #[error("Forbidden")]
+    Forbidden,
+
+    // Claims errors
+    #[error("Invalid claims: {0}")]
+    InvalidClaims(String),
+
+    #[error("Missing required claim: {0}")]
+    MissingClaim(String),
+
+    // External errors
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
 
     #[error("Serialization error: {0}")]
     Serialization(#[from] serde_json::Error),
+
+    #[error("JWT error: {0}")]
+    Jwt(#[from] jsonwebtoken::errors::Error),
+
+    #[error("HTTP error: {0}")]
+    Http(#[from] reqwest::Error),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
+
+// HTTP status code mapping for API responses
+impl Error {
+    pub fn status_code(&self) -> actix_web::http::StatusCode {
+        use actix_web::http::StatusCode;
+
+        match self {
+            Error::SessionNotFound => StatusCode::NOT_FOUND,
+            Error::SessionLimitExceeded => StatusCode::TOO_MANY_REQUESTS,
+            Error::InvalidCommand(_) => StatusCode::BAD_REQUEST,
+            Error::CommandNotAllowed(_) => StatusCode::FORBIDDEN,
+            Error::ResourceLimitExceeded(_) => StatusCode::TOO_MANY_REQUESTS,
+            Error::AuthenticationFailed => StatusCode::UNAUTHORIZED,
+            Error::MissingAuthHeader => StatusCode::UNAUTHORIZED,
+            Error::InvalidToken(_) => StatusCode::UNAUTHORIZED,
+            Error::Unauthorized => StatusCode::UNAUTHORIZED,
+            Error::AuthorizationDenied(_, _) => StatusCode::FORBIDDEN,
+            Error::Forbidden => StatusCode::FORBIDDEN,
+            Error::InvalidClaims(_) => StatusCode::UNAUTHORIZED,
+            Error::MissingClaim(_) => StatusCode::UNAUTHORIZED,
+            Error::JwksError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            Error::KeyNotFound(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            Error::JwksFetchError(_) => StatusCode::SERVICE_UNAVAILABLE,
+            Error::Io(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            Error::Serialization(_) => StatusCode::BAD_REQUEST,
+            Error::Jwt(_) => StatusCode::UNAUTHORIZED,
+            Error::Http(_) => StatusCode::BAD_GATEWAY,
+        }
+    }
+}
 ```
 
 ---
@@ -705,6 +1295,8 @@ pub struct Config {
     pub server: ServerConfig,
     pub session: SessionConfig,
     pub security: SecurityConfig,
+    pub jwks: JwksConfig,
+    pub authorization: AuthorizationConfig,
     pub logging: LoggingConfig,
 }
 
@@ -714,6 +1306,8 @@ impl Config {
             server: ServerConfig::from_env()?,
             session: SessionConfig::default(),
             security: SecurityConfig::from_env()?,
+            jwks: JwksConfig::from_env()?,
+            authorization: AuthorizationConfig::default(),
             logging: LoggingConfig::default(),
         })
     }
@@ -747,6 +1341,214 @@ fn default_max_connections() -> usize {
 }
 ```
 
+### JWKS Configuration (src/config/jwks.rs)
+
+```rust
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct JwksConfig {
+    pub providers: Vec<JwksProviderConfig>,
+
+    #[serde(default = "default_refresh_interval")]
+    pub refresh_interval_secs: u64,
+
+    #[serde(default = "default_cache_ttl")]
+    pub cache_ttl_secs: u64,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct JwksProviderConfig {
+    pub name: String,
+    pub jwks_uri: String,
+    pub issuer: String,
+    pub audience: Option<String>,
+}
+
+impl JwksConfig {
+    pub fn from_env() -> Result<Self> {
+        // Try to load from environment variable (JSON format)
+        if let Ok(config_json) = std::env::var("JWKS_CONFIG") {
+            return serde_json::from_str(&config_json)
+                .map_err(|e| Error::InvalidConfig(format!("Invalid JWKS_CONFIG: {}", e)));
+        }
+
+        // Fallback to individual environment variables
+        let provider = JwksProviderConfig {
+            name: std::env::var("JWKS_PROVIDER_NAME")
+                .unwrap_or_else(|_| "default".to_string()),
+            jwks_uri: std::env::var("JWKS_URI")
+                .map_err(|_| Error::InvalidConfig("JWKS_URI not set".to_string()))?,
+            issuer: std::env::var("JWKS_ISSUER")
+                .map_err(|_| Error::InvalidConfig("JWKS_ISSUER not set".to_string()))?,
+            audience: std::env::var("JWKS_AUDIENCE").ok(),
+        };
+
+        Ok(Self {
+            providers: vec![provider],
+            refresh_interval_secs: default_refresh_interval(),
+            cache_ttl_secs: default_cache_ttl(),
+        })
+    }
+}
+
+fn default_refresh_interval() -> u64 {
+    3600 // 1 hour
+}
+
+fn default_cache_ttl() -> u64 {
+    3600 // 1 hour
+}
+```
+
+### Security Configuration (src/config/security.rs)
+
+```rust
+#[derive(Debug, Clone, Deserialize)]
+pub struct SecurityConfig {
+    // JWT validation settings
+    pub jwt: JwtValidationConfig,
+
+    // Sandbox settings
+    pub sandbox: SandboxConfig,
+
+    // Rate limiting
+    pub rate_limit: RateLimitConfig,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct JwtValidationConfig {
+    #[serde(default = "default_allowed_algorithms")]
+    pub allowed_algorithms: Vec<String>,
+
+    pub allowed_issuers: Vec<String>,
+
+    pub required_audience: Option<String>,
+
+    #[serde(default = "default_validate_exp")]
+    pub validate_exp: bool,
+
+    #[serde(default = "default_validate_nbf")]
+    pub validate_nbf: bool,
+
+    #[serde(default = "default_leeway")]
+    pub leeway_secs: u64,
+}
+
+fn default_allowed_algorithms() -> Vec<String> {
+    vec!["RS256".to_string(), "ES256".to_string()]
+}
+
+fn default_validate_exp() -> bool {
+    true
+}
+
+fn default_validate_nbf() -> bool {
+    true
+}
+
+fn default_leeway() -> u64 {
+    60
+}
+
+impl SecurityConfig {
+    pub fn from_env() -> Result<Self> {
+        // Load from environment or config file
+        Ok(Self {
+            jwt: JwtValidationConfig {
+                allowed_algorithms: default_allowed_algorithms(),
+                allowed_issuers: std::env::var("JWT_ALLOWED_ISSUERS")
+                    .unwrap_or_default()
+                    .split(',')
+                    .map(|s| s.to_string())
+                    .collect(),
+                required_audience: std::env::var("JWT_REQUIRED_AUDIENCE").ok(),
+                validate_exp: default_validate_exp(),
+                validate_nbf: default_validate_nbf(),
+                leeway_secs: default_leeway(),
+            },
+            sandbox: SandboxConfig::default(),
+            rate_limit: RateLimitConfig::default(),
+        })
+    }
+}
+```
+
+### Authorization Configuration
+
+```rust
+// src/config/authz.rs
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct AuthorizationConfig {
+    pub rules: Vec<AuthzRuleConfig>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct AuthzRuleConfig {
+    pub resource: String,
+    pub action: String,
+    pub allowed_groups: Vec<String>,
+    pub allowed_users: Vec<String>,
+}
+
+impl Default for AuthorizationConfig {
+    fn default() -> Self {
+        Self {
+            rules: vec![
+                AuthzRuleConfig {
+                    resource: "terminal".to_string(),
+                    action: "create_session".to_string(),
+                    allowed_groups: vec!["developers".to_string(), "admins".to_string()],
+                    allowed_users: vec![],
+                },
+                AuthzRuleConfig {
+                    resource: "terminal".to_string(),
+                    action: "execute_command".to_string(),
+                    allowed_groups: vec!["developers".to_string(), "admins".to_string()],
+                    allowed_users: vec![],
+                },
+            ],
+        }
+    }
+}
+
+impl AuthorizationConfig {
+    pub fn from_env() -> Result<Self> {
+        if let Ok(config_json) = std::env::var("AUTHZ_CONFIG") {
+            return serde_json::from_str(&config_json)
+                .map_err(|e| Error::InvalidConfig(format!("Invalid AUTHZ_CONFIG: {}", e)));
+        }
+
+        Ok(Self::default())
+    }
+}
+```
+
+### Environment Variables
+
+```bash
+# Server
+HOST=0.0.0.0
+PORT=8080
+
+# JWKS Configuration
+JWKS_URI=https://backstage.example.com/.well-known/jwks.json
+JWKS_ISSUER=https://backstage.example.com
+JWKS_AUDIENCE=web-terminal
+JWKS_PROVIDER_NAME=backstage
+
+# Or use JSON for multiple providers:
+JWKS_CONFIG='{"providers":[{"name":"backstage","jwks_uri":"...","issuer":"...","audience":"..."}]}'
+
+# JWT Validation
+JWT_ALLOWED_ISSUERS=https://backstage.example.com,https://auth.example.com
+JWT_REQUIRED_AUDIENCE=web-terminal
+
+# Authorization
+AUTHZ_CONFIG='{"rules":[{"resource":"terminal","action":"create_session","allowed_groups":["developers","admins"],"allowed_users":[]}]}'
+```
+
 ---
 
 ## Performance Optimizations
@@ -773,8 +1575,68 @@ fn default_max_connections() -> usize {
 
 ---
 
+## Dependencies
+
+The following Rust dependencies are required for JWT/JWKS authentication:
+
+```toml
+[dependencies]
+# Core server
+actix-web = "4.x"
+actix-web-actors = "4.x"
+actix-files = "0.6"
+tokio = { version = "1.x", features = ["full"] }
+
+# JWT and JWKS
+jsonwebtoken = "9.x"
+reqwest = { version = "0.11.x", features = ["json"] }
+
+# Serialization
+serde = { version = "1.x", features = ["derive"] }
+serde_json = "1.x"
+
+# Data structures
+dashmap = "5.x"
+
+# Error handling
+thiserror = "1.x"
+anyhow = "1.x"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Utilities
+chrono = "0.4"
+uuid = { version = "1.x", features = ["v4", "serde"] }
+```
+
+### Key Dependencies
+
+1. **jsonwebtoken (9.x)**: JWT token verification and validation
+   - RS256, ES256 algorithm support
+   - JWKS integration via `jwk` module
+   - Claims validation
+
+2. **reqwest (0.11.x)**: HTTP client for JWKS fetching
+   - Async support with Tokio
+   - JSON deserialization
+   - Timeout handling
+
+3. **actix-web (4.x)**: Web framework
+   - Middleware support
+   - Request extensions for claims storage
+   - WebSocket support
+
+4. **dashmap (5.x)**: Concurrent hash map for JWKS cache
+   - Lock-free reads
+   - Thread-safe writes
+
+---
+
 ## Version History
 
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
 | 1.0.0 | 2025-09-29 | Liam Helmer | Initial backend specification |
+| 1.1.0 | 2025-09-29 | Liam Helmer | Added JWT/JWKS authentication, authorization, and claims extraction |

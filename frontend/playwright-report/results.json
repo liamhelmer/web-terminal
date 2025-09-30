@@ -1,0 +1,3321 @@
+{
+  "config": {
+    "configFile": "/Users/liam.helmer/repos/liamhelmer/web-terminal/frontend/playwright.config.ts",
+    "rootDir": "/Users/liam.helmer/repos/liamhelmer/web-terminal/frontend/tests/e2e",
+    "forbidOnly": false,
+    "fullyParallel": true,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {},
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "html",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "playwright-report/results.json"
+        }
+      ],
+      [
+        "list",
+        null
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "/Users/liam.helmer/repos/liamhelmer/web-terminal/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/Users/liam.helmer/repos/liamhelmer/web-terminal/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/Users/liam.helmer/repos/liamhelmer/web-terminal/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "firefox",
+        "name": "firefox",
+        "testDir": "/Users/liam.helmer/repos/liamhelmer/web-terminal/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/Users/liam.helmer/repos/liamhelmer/web-terminal/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "webkit",
+        "name": "webkit",
+        "testDir": "/Users/liam.helmer/repos/liamhelmer/web-terminal/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/Users/liam.helmer/repos/liamhelmer/web-terminal/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "Mobile Chrome",
+        "name": "Mobile Chrome",
+        "testDir": "/Users/liam.helmer/repos/liamhelmer/web-terminal/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/Users/liam.helmer/repos/liamhelmer/web-terminal/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "Mobile Safari",
+        "name": "Mobile Safari",
+        "testDir": "/Users/liam.helmer/repos/liamhelmer/web-terminal/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "shard": null,
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.55.1",
+    "workers": 5,
+    "webServer": {
+      "command": "pnpm run preview",
+      "url": "http://localhost:3000",
+      "reuseExistingServer": true,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "terminal.spec.ts",
+      "file": "terminal.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Terminal E2E Tests",
+          "file": "terminal.spec.ts",
+          "line": 14,
+          "column": 6,
+          "specs": [],
+          "suites": [
+            {
+              "title": "Basic Rendering and Loading",
+              "file": "terminal.spec.ts",
+              "line": 20,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "should load terminal page and render container",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-89df7250a24937306b07",
+                  "file": "terminal.spec.ts",
+                  "line": 21,
+                  "column": 5
+                },
+                {
+                  "title": "should initialize xterm.js terminal instance",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-ada0a283f490ef40fe4c",
+                  "file": "terminal.spec.ts",
+                  "line": 32,
+                  "column": 5
+                },
+                {
+                  "title": "should display loading state while connecting",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-10a83bda98f85f68a5c2",
+                  "file": "terminal.spec.ts",
+                  "line": 47,
+                  "column": 5
+                },
+                {
+                  "title": "should load terminal page and render container",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-fb69ce51bedf34656b5f",
+                  "file": "terminal.spec.ts",
+                  "line": 21,
+                  "column": 5
+                },
+                {
+                  "title": "should initialize xterm.js terminal instance",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-d50c47b4ef15c0654abb",
+                  "file": "terminal.spec.ts",
+                  "line": 32,
+                  "column": 5
+                },
+                {
+                  "title": "should display loading state while connecting",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-14c0325b9089b4c5d644",
+                  "file": "terminal.spec.ts",
+                  "line": 47,
+                  "column": 5
+                },
+                {
+                  "title": "should load terminal page and render container",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-4c8f936457db4857a081",
+                  "file": "terminal.spec.ts",
+                  "line": 21,
+                  "column": 5
+                },
+                {
+                  "title": "should initialize xterm.js terminal instance",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-eba9fab0df4fc8e33862",
+                  "file": "terminal.spec.ts",
+                  "line": 32,
+                  "column": 5
+                },
+                {
+                  "title": "should display loading state while connecting",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-6330da44e7fb6bdf4f98",
+                  "file": "terminal.spec.ts",
+                  "line": 47,
+                  "column": 5
+                },
+                {
+                  "title": "should load terminal page and render container",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-e2b7ef49e151b80f0385",
+                  "file": "terminal.spec.ts",
+                  "line": 21,
+                  "column": 5
+                },
+                {
+                  "title": "should initialize xterm.js terminal instance",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-2d382c206fddbc7f9010",
+                  "file": "terminal.spec.ts",
+                  "line": 32,
+                  "column": 5
+                },
+                {
+                  "title": "should display loading state while connecting",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-c773b5b4c1d808196842",
+                  "file": "terminal.spec.ts",
+                  "line": 47,
+                  "column": 5
+                },
+                {
+                  "title": "should load terminal page and render container",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-ecdca4d3e0bf09442035",
+                  "file": "terminal.spec.ts",
+                  "line": 21,
+                  "column": 5
+                },
+                {
+                  "title": "should initialize xterm.js terminal instance",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-86ac572e4f55efb5d835",
+                  "file": "terminal.spec.ts",
+                  "line": 32,
+                  "column": 5
+                },
+                {
+                  "title": "should display loading state while connecting",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-6a8b8f996d0c8ed9aced",
+                  "file": "terminal.spec.ts",
+                  "line": 47,
+                  "column": 5
+                }
+              ]
+            },
+            {
+              "title": "Single-Port Architecture Verification",
+              "file": "terminal.spec.ts",
+              "line": 59,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "should construct WebSocket URL from window.location (same port)",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-3413d17809a3c9691dc4",
+                  "file": "terminal.spec.ts",
+                  "line": 60,
+                  "column": 5
+                },
+                {
+                  "title": "should use relative URLs for all resources",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-e12ef34d8f38d3a3015a",
+                  "file": "terminal.spec.ts",
+                  "line": 93,
+                  "column": 5
+                },
+                {
+                  "title": "should not have hardcoded port numbers in source",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-cb58c0ce7f4e41be32fc",
+                  "file": "terminal.spec.ts",
+                  "line": 121,
+                  "column": 5
+                },
+                {
+                  "title": "should construct WebSocket URL from window.location (same port)",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-a2865933614894c76a61",
+                  "file": "terminal.spec.ts",
+                  "line": 60,
+                  "column": 5
+                },
+                {
+                  "title": "should use relative URLs for all resources",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-3acb2790d0ba0b95610e",
+                  "file": "terminal.spec.ts",
+                  "line": 93,
+                  "column": 5
+                },
+                {
+                  "title": "should not have hardcoded port numbers in source",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-f1a34a27bfddd1762595",
+                  "file": "terminal.spec.ts",
+                  "line": 121,
+                  "column": 5
+                },
+                {
+                  "title": "should construct WebSocket URL from window.location (same port)",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-e392a2e247d6e5780636",
+                  "file": "terminal.spec.ts",
+                  "line": 60,
+                  "column": 5
+                },
+                {
+                  "title": "should use relative URLs for all resources",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-a4fdc7859748edf3d609",
+                  "file": "terminal.spec.ts",
+                  "line": 93,
+                  "column": 5
+                },
+                {
+                  "title": "should not have hardcoded port numbers in source",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-48a935802bd5ca6320bf",
+                  "file": "terminal.spec.ts",
+                  "line": 121,
+                  "column": 5
+                },
+                {
+                  "title": "should construct WebSocket URL from window.location (same port)",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-a10ca5698feed103e8eb",
+                  "file": "terminal.spec.ts",
+                  "line": 60,
+                  "column": 5
+                },
+                {
+                  "title": "should use relative URLs for all resources",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-49d03182f657225523b8",
+                  "file": "terminal.spec.ts",
+                  "line": 93,
+                  "column": 5
+                },
+                {
+                  "title": "should not have hardcoded port numbers in source",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-98c9193ca1647cafae18",
+                  "file": "terminal.spec.ts",
+                  "line": 121,
+                  "column": 5
+                },
+                {
+                  "title": "should construct WebSocket URL from window.location (same port)",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-d08c739f2a4f441e9fdf",
+                  "file": "terminal.spec.ts",
+                  "line": 60,
+                  "column": 5
+                },
+                {
+                  "title": "should use relative URLs for all resources",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-938951deb557c6956273",
+                  "file": "terminal.spec.ts",
+                  "line": 93,
+                  "column": 5
+                },
+                {
+                  "title": "should not have hardcoded port numbers in source",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-4da3b4175366a53b594a",
+                  "file": "terminal.spec.ts",
+                  "line": 121,
+                  "column": 5
+                }
+              ]
+            },
+            {
+              "title": "User Input and Interaction",
+              "file": "terminal.spec.ts",
+              "line": 144,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "should handle keyboard input and typing",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-028d385a4ff1b93fec91",
+                  "file": "terminal.spec.ts",
+                  "line": 145,
+                  "column": 5
+                },
+                {
+                  "title": "should handle Enter key to submit commands",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-623caba131927474a338",
+                  "file": "terminal.spec.ts",
+                  "line": 160,
+                  "column": 5
+                },
+                {
+                  "title": "should support Ctrl+C for interrupt",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-3e7172d6e89417528cbd",
+                  "file": "terminal.spec.ts",
+                  "line": 173,
+                  "column": 5
+                },
+                {
+                  "title": "should support Ctrl+V for paste",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-49dc5a4b20f286c4cdda",
+                  "file": "terminal.spec.ts",
+                  "line": 188,
+                  "column": 5
+                },
+                {
+                  "title": "should support Ctrl+F for search",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-e955c9696c0966182e3f",
+                  "file": "terminal.spec.ts",
+                  "line": 207,
+                  "column": 5
+                },
+                {
+                  "title": "should handle rapid keyboard input without dropping keys",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-a51bba2dbd0c879249b3",
+                  "file": "terminal.spec.ts",
+                  "line": 232,
+                  "column": 5
+                },
+                {
+                  "title": "should handle special characters and Unicode",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-62774f7bfc39fa7cd5ae",
+                  "file": "terminal.spec.ts",
+                  "line": 244,
+                  "column": 5
+                },
+                {
+                  "title": "should handle keyboard input and typing",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-a4135dad7ca9aab633f6",
+                  "file": "terminal.spec.ts",
+                  "line": 145,
+                  "column": 5
+                },
+                {
+                  "title": "should handle Enter key to submit commands",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-91c7f8b04db492eaea02",
+                  "file": "terminal.spec.ts",
+                  "line": 160,
+                  "column": 5
+                },
+                {
+                  "title": "should support Ctrl+C for interrupt",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-23d6fc72b0e304d3ea09",
+                  "file": "terminal.spec.ts",
+                  "line": 173,
+                  "column": 5
+                },
+                {
+                  "title": "should support Ctrl+V for paste",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-7b99216fb2ba0a1d9025",
+                  "file": "terminal.spec.ts",
+                  "line": 188,
+                  "column": 5
+                },
+                {
+                  "title": "should support Ctrl+F for search",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-037e751caad4296d3daa",
+                  "file": "terminal.spec.ts",
+                  "line": 207,
+                  "column": 5
+                },
+                {
+                  "title": "should handle rapid keyboard input without dropping keys",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-8bd570ead9d78498890a",
+                  "file": "terminal.spec.ts",
+                  "line": 232,
+                  "column": 5
+                },
+                {
+                  "title": "should handle special characters and Unicode",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-4b51370f17bc5dd2bc33",
+                  "file": "terminal.spec.ts",
+                  "line": 244,
+                  "column": 5
+                },
+                {
+                  "title": "should handle keyboard input and typing",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-df61c84f74fc52f927c0",
+                  "file": "terminal.spec.ts",
+                  "line": 145,
+                  "column": 5
+                },
+                {
+                  "title": "should handle Enter key to submit commands",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-9d404d36a4fe43bc94cb",
+                  "file": "terminal.spec.ts",
+                  "line": 160,
+                  "column": 5
+                },
+                {
+                  "title": "should support Ctrl+C for interrupt",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-d8a13076712be5ff7f5b",
+                  "file": "terminal.spec.ts",
+                  "line": 173,
+                  "column": 5
+                },
+                {
+                  "title": "should support Ctrl+V for paste",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-d3d1c5ae23fe735ab91b",
+                  "file": "terminal.spec.ts",
+                  "line": 188,
+                  "column": 5
+                },
+                {
+                  "title": "should support Ctrl+F for search",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-604ad92a3a419727fed6",
+                  "file": "terminal.spec.ts",
+                  "line": 207,
+                  "column": 5
+                },
+                {
+                  "title": "should handle rapid keyboard input without dropping keys",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-33a7e82cf3f78cb99fe1",
+                  "file": "terminal.spec.ts",
+                  "line": 232,
+                  "column": 5
+                },
+                {
+                  "title": "should handle special characters and Unicode",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-49bec089a0b22699d2a8",
+                  "file": "terminal.spec.ts",
+                  "line": 244,
+                  "column": 5
+                },
+                {
+                  "title": "should handle keyboard input and typing",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-c5e8d2e5af6553eef12b",
+                  "file": "terminal.spec.ts",
+                  "line": 145,
+                  "column": 5
+                },
+                {
+                  "title": "should handle Enter key to submit commands",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-1ffa2e9a94cd9d878842",
+                  "file": "terminal.spec.ts",
+                  "line": 160,
+                  "column": 5
+                },
+                {
+                  "title": "should support Ctrl+C for interrupt",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-9e8f3d780267036cea8b",
+                  "file": "terminal.spec.ts",
+                  "line": 173,
+                  "column": 5
+                },
+                {
+                  "title": "should support Ctrl+V for paste",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-2c72710f2f6e16364e39",
+                  "file": "terminal.spec.ts",
+                  "line": 188,
+                  "column": 5
+                },
+                {
+                  "title": "should support Ctrl+F for search",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-c489b892517f08210bd6",
+                  "file": "terminal.spec.ts",
+                  "line": 207,
+                  "column": 5
+                },
+                {
+                  "title": "should handle rapid keyboard input without dropping keys",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-99d92a3725bfc1482811",
+                  "file": "terminal.spec.ts",
+                  "line": 232,
+                  "column": 5
+                },
+                {
+                  "title": "should handle special characters and Unicode",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-d035a19f2ba83c0d32be",
+                  "file": "terminal.spec.ts",
+                  "line": 244,
+                  "column": 5
+                },
+                {
+                  "title": "should handle keyboard input and typing",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-1270eb987b5c909cf173",
+                  "file": "terminal.spec.ts",
+                  "line": 145,
+                  "column": 5
+                },
+                {
+                  "title": "should handle Enter key to submit commands",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-a51a13bed37dfa2bde7b",
+                  "file": "terminal.spec.ts",
+                  "line": 160,
+                  "column": 5
+                },
+                {
+                  "title": "should support Ctrl+C for interrupt",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-074508e5d29a094dd113",
+                  "file": "terminal.spec.ts",
+                  "line": 173,
+                  "column": 5
+                },
+                {
+                  "title": "should support Ctrl+V for paste",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-ef3ed90fa1b3f5991f2f",
+                  "file": "terminal.spec.ts",
+                  "line": 188,
+                  "column": 5
+                },
+                {
+                  "title": "should support Ctrl+F for search",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-4c663f6bf6ad21c6596e",
+                  "file": "terminal.spec.ts",
+                  "line": 207,
+                  "column": 5
+                },
+                {
+                  "title": "should handle rapid keyboard input without dropping keys",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-ae6a92824553b5230184",
+                  "file": "terminal.spec.ts",
+                  "line": 232,
+                  "column": 5
+                },
+                {
+                  "title": "should handle special characters and Unicode",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-2490b6c2efd6de78d8d6",
+                  "file": "terminal.spec.ts",
+                  "line": 244,
+                  "column": 5
+                }
+              ]
+            },
+            {
+              "title": "WebSocket Connection Management",
+              "file": "terminal.spec.ts",
+              "line": 257,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "should establish WebSocket connection on load",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-7e92c745a01a94b88e6e",
+                  "file": "terminal.spec.ts",
+                  "line": 258,
+                  "column": 5
+                },
+                {
+                  "title": "should handle WebSocket disconnection gracefully",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-e40249600634449fbf4f",
+                  "file": "terminal.spec.ts",
+                  "line": 282,
+                  "column": 5
+                },
+                {
+                  "title": "should attempt reconnection with exponential backoff",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-d8622555832a03a746df",
+                  "file": "terminal.spec.ts",
+                  "line": 302,
+                  "column": 5
+                },
+                {
+                  "title": "should queue messages when disconnected",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-56d1bbc8d0a5fff10d69",
+                  "file": "terminal.spec.ts",
+                  "line": 332,
+                  "column": 5
+                },
+                {
+                  "title": "should establish WebSocket connection on load",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-066076c5ac9625853e2a",
+                  "file": "terminal.spec.ts",
+                  "line": 258,
+                  "column": 5
+                },
+                {
+                  "title": "should handle WebSocket disconnection gracefully",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-1e4f8b03712f408c2bf4",
+                  "file": "terminal.spec.ts",
+                  "line": 282,
+                  "column": 5
+                },
+                {
+                  "title": "should attempt reconnection with exponential backoff",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-49fc6165f26dc33a8b68",
+                  "file": "terminal.spec.ts",
+                  "line": 302,
+                  "column": 5
+                },
+                {
+                  "title": "should queue messages when disconnected",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-0e093ac407bd3b4a9290",
+                  "file": "terminal.spec.ts",
+                  "line": 332,
+                  "column": 5
+                },
+                {
+                  "title": "should establish WebSocket connection on load",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-59625818b0d96d52351e",
+                  "file": "terminal.spec.ts",
+                  "line": 258,
+                  "column": 5
+                },
+                {
+                  "title": "should handle WebSocket disconnection gracefully",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-f7720fb9ce159edcb172",
+                  "file": "terminal.spec.ts",
+                  "line": 282,
+                  "column": 5
+                },
+                {
+                  "title": "should attempt reconnection with exponential backoff",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-8fe5d6bab49771e1cab8",
+                  "file": "terminal.spec.ts",
+                  "line": 302,
+                  "column": 5
+                },
+                {
+                  "title": "should queue messages when disconnected",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-348b2b4aee80a20596ee",
+                  "file": "terminal.spec.ts",
+                  "line": 332,
+                  "column": 5
+                },
+                {
+                  "title": "should establish WebSocket connection on load",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-0d4b18780637807c4f8b",
+                  "file": "terminal.spec.ts",
+                  "line": 258,
+                  "column": 5
+                },
+                {
+                  "title": "should handle WebSocket disconnection gracefully",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-916f71063fb06fd40c47",
+                  "file": "terminal.spec.ts",
+                  "line": 282,
+                  "column": 5
+                },
+                {
+                  "title": "should attempt reconnection with exponential backoff",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-4be6e86969eab281c627",
+                  "file": "terminal.spec.ts",
+                  "line": 302,
+                  "column": 5
+                },
+                {
+                  "title": "should queue messages when disconnected",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-9bc1f62094bffd49a26e",
+                  "file": "terminal.spec.ts",
+                  "line": 332,
+                  "column": 5
+                },
+                {
+                  "title": "should establish WebSocket connection on load",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-83a9cda8ff99f84361c0",
+                  "file": "terminal.spec.ts",
+                  "line": 258,
+                  "column": 5
+                },
+                {
+                  "title": "should handle WebSocket disconnection gracefully",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-c687effd02e1ac79bd27",
+                  "file": "terminal.spec.ts",
+                  "line": 282,
+                  "column": 5
+                },
+                {
+                  "title": "should attempt reconnection with exponential backoff",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-bd7b8f74335dae7327dc",
+                  "file": "terminal.spec.ts",
+                  "line": 302,
+                  "column": 5
+                },
+                {
+                  "title": "should queue messages when disconnected",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-b6dbf6f788bc9bac5e06",
+                  "file": "terminal.spec.ts",
+                  "line": 332,
+                  "column": 5
+                }
+              ]
+            },
+            {
+              "title": "Terminal Resize Handling",
+              "file": "terminal.spec.ts",
+              "line": 351,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "should resize terminal when window resizes",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-31c67386aa6f752b23e5",
+                  "file": "terminal.spec.ts",
+                  "line": 352,
+                  "column": 5
+                },
+                {
+                  "title": "should send resize events to backend",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-5a79dc2a7006d3eff579",
+                  "file": "terminal.spec.ts",
+                  "line": 380,
+                  "column": 5
+                },
+                {
+                  "title": "should resize terminal when window resizes",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-f3fc2559ea3ae7242f8b",
+                  "file": "terminal.spec.ts",
+                  "line": 352,
+                  "column": 5
+                },
+                {
+                  "title": "should send resize events to backend",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-551d21b8378026dabbaf",
+                  "file": "terminal.spec.ts",
+                  "line": 380,
+                  "column": 5
+                },
+                {
+                  "title": "should resize terminal when window resizes",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-fc4f779ae3ed93a1e6da",
+                  "file": "terminal.spec.ts",
+                  "line": 352,
+                  "column": 5
+                },
+                {
+                  "title": "should send resize events to backend",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-940141bb552847e8ba29",
+                  "file": "terminal.spec.ts",
+                  "line": 380,
+                  "column": 5
+                },
+                {
+                  "title": "should resize terminal when window resizes",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-8f6b4e9b9134fb94fbf4",
+                  "file": "terminal.spec.ts",
+                  "line": 352,
+                  "column": 5
+                },
+                {
+                  "title": "should send resize events to backend",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-15e605afe27d440e4872",
+                  "file": "terminal.spec.ts",
+                  "line": 380,
+                  "column": 5
+                },
+                {
+                  "title": "should resize terminal when window resizes",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-d0b471e407c3b48a2648",
+                  "file": "terminal.spec.ts",
+                  "line": 352,
+                  "column": 5
+                },
+                {
+                  "title": "should send resize events to backend",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-216481f8723b6b409af4",
+                  "file": "terminal.spec.ts",
+                  "line": 380,
+                  "column": 5
+                }
+              ]
+            },
+            {
+              "title": "Session Management",
+              "file": "terminal.spec.ts",
+              "line": 408,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "should persist session data in localStorage",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-baaaf7fe26f24c5fbe79",
+                  "file": "terminal.spec.ts",
+                  "line": 409,
+                  "column": 5
+                },
+                {
+                  "title": "should restore session on page reload",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-7f85c1107991b272c33c",
+                  "file": "terminal.spec.ts",
+                  "line": 423,
+                  "column": 5
+                },
+                {
+                  "title": "should handle multiple sessions",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-d0c14e4ee51d677b4139",
+                  "file": "terminal.spec.ts",
+                  "line": 454,
+                  "column": 5
+                },
+                {
+                  "title": "should persist session data in localStorage",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-ad612ace074bcf331741",
+                  "file": "terminal.spec.ts",
+                  "line": 409,
+                  "column": 5
+                },
+                {
+                  "title": "should restore session on page reload",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-22779fe83277dfb7ae07",
+                  "file": "terminal.spec.ts",
+                  "line": 423,
+                  "column": 5
+                },
+                {
+                  "title": "should handle multiple sessions",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-fcc1c4ee93d1e35db132",
+                  "file": "terminal.spec.ts",
+                  "line": 454,
+                  "column": 5
+                },
+                {
+                  "title": "should persist session data in localStorage",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-09b58af7523b9171d16a",
+                  "file": "terminal.spec.ts",
+                  "line": 409,
+                  "column": 5
+                },
+                {
+                  "title": "should restore session on page reload",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-e5a0f13516e35eb6d5b2",
+                  "file": "terminal.spec.ts",
+                  "line": 423,
+                  "column": 5
+                },
+                {
+                  "title": "should handle multiple sessions",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-a8e8c8053ff64649ca81",
+                  "file": "terminal.spec.ts",
+                  "line": 454,
+                  "column": 5
+                },
+                {
+                  "title": "should persist session data in localStorage",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-6745ecae2952bab126fa",
+                  "file": "terminal.spec.ts",
+                  "line": 409,
+                  "column": 5
+                },
+                {
+                  "title": "should restore session on page reload",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-8b3deec98de9258cbe32",
+                  "file": "terminal.spec.ts",
+                  "line": 423,
+                  "column": 5
+                },
+                {
+                  "title": "should handle multiple sessions",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-1147c3b708c5249c781d",
+                  "file": "terminal.spec.ts",
+                  "line": 454,
+                  "column": 5
+                },
+                {
+                  "title": "should persist session data in localStorage",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-65ec9369df215420c93d",
+                  "file": "terminal.spec.ts",
+                  "line": 409,
+                  "column": 5
+                },
+                {
+                  "title": "should restore session on page reload",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-eb0b2d10681bf0c51ecd",
+                  "file": "terminal.spec.ts",
+                  "line": 423,
+                  "column": 5
+                },
+                {
+                  "title": "should handle multiple sessions",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-94fa30616debfa704d52",
+                  "file": "terminal.spec.ts",
+                  "line": 454,
+                  "column": 5
+                }
+              ]
+            },
+            {
+              "title": "Error Handling and Edge Cases",
+              "file": "terminal.spec.ts",
+              "line": 468,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "should handle WebSocket connection failure gracefully",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-5fa1f3b09f515a2b8472",
+                  "file": "terminal.spec.ts",
+                  "line": 469,
+                  "column": 5
+                },
+                {
+                  "title": "should handle malformed WebSocket messages",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-c30d0db26eca6da5c267",
+                  "file": "terminal.spec.ts",
+                  "line": 481,
+                  "column": 5
+                },
+                {
+                  "title": "should handle rapid command submission",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-ce0a9117276cd2c8cf51",
+                  "file": "terminal.spec.ts",
+                  "line": 499,
+                  "column": 5
+                },
+                {
+                  "title": "should handle very long output without crashing",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-2762e891cbda014e9ac3",
+                  "file": "terminal.spec.ts",
+                  "line": 515,
+                  "column": 5
+                },
+                {
+                  "title": "should handle network latency gracefully",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-7c1e64f26ed4c2bf7dba",
+                  "file": "terminal.spec.ts",
+                  "line": 536,
+                  "column": 5
+                },
+                {
+                  "title": "should handle WebSocket connection failure gracefully",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-7f32632a68bcc414c91e",
+                  "file": "terminal.spec.ts",
+                  "line": 469,
+                  "column": 5
+                },
+                {
+                  "title": "should handle malformed WebSocket messages",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-f605a8081e23d0a63edd",
+                  "file": "terminal.spec.ts",
+                  "line": 481,
+                  "column": 5
+                },
+                {
+                  "title": "should handle rapid command submission",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-60606904eda16f549af8",
+                  "file": "terminal.spec.ts",
+                  "line": 499,
+                  "column": 5
+                },
+                {
+                  "title": "should handle very long output without crashing",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-7777387fa2e2503ed029",
+                  "file": "terminal.spec.ts",
+                  "line": 515,
+                  "column": 5
+                },
+                {
+                  "title": "should handle network latency gracefully",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-a2dc7806f007eb7977e6",
+                  "file": "terminal.spec.ts",
+                  "line": 536,
+                  "column": 5
+                },
+                {
+                  "title": "should handle WebSocket connection failure gracefully",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-dd84fe6f8eaf1bf15b83",
+                  "file": "terminal.spec.ts",
+                  "line": 469,
+                  "column": 5
+                },
+                {
+                  "title": "should handle malformed WebSocket messages",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-bebdf907a5b9685c7062",
+                  "file": "terminal.spec.ts",
+                  "line": 481,
+                  "column": 5
+                },
+                {
+                  "title": "should handle rapid command submission",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-666bd89e2121a661f6cc",
+                  "file": "terminal.spec.ts",
+                  "line": 499,
+                  "column": 5
+                },
+                {
+                  "title": "should handle very long output without crashing",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-a869a1976a76cd44bbfb",
+                  "file": "terminal.spec.ts",
+                  "line": 515,
+                  "column": 5
+                },
+                {
+                  "title": "should handle network latency gracefully",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-b543884bdc85683de848",
+                  "file": "terminal.spec.ts",
+                  "line": 536,
+                  "column": 5
+                },
+                {
+                  "title": "should handle WebSocket connection failure gracefully",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-e1f9224375d6bf2a33ee",
+                  "file": "terminal.spec.ts",
+                  "line": 469,
+                  "column": 5
+                },
+                {
+                  "title": "should handle malformed WebSocket messages",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-cf0fefb1894f4ef8640d",
+                  "file": "terminal.spec.ts",
+                  "line": 481,
+                  "column": 5
+                },
+                {
+                  "title": "should handle rapid command submission",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-c9113f4dfa3b84401066",
+                  "file": "terminal.spec.ts",
+                  "line": 499,
+                  "column": 5
+                },
+                {
+                  "title": "should handle very long output without crashing",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-e9b632723f0e2f3d430f",
+                  "file": "terminal.spec.ts",
+                  "line": 515,
+                  "column": 5
+                },
+                {
+                  "title": "should handle network latency gracefully",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-a7be4794947a116edebe",
+                  "file": "terminal.spec.ts",
+                  "line": 536,
+                  "column": 5
+                },
+                {
+                  "title": "should handle WebSocket connection failure gracefully",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-05c076f1db3509a009ab",
+                  "file": "terminal.spec.ts",
+                  "line": 469,
+                  "column": 5
+                },
+                {
+                  "title": "should handle malformed WebSocket messages",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-e941e6706e4a3683ba88",
+                  "file": "terminal.spec.ts",
+                  "line": 481,
+                  "column": 5
+                },
+                {
+                  "title": "should handle rapid command submission",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-bf62fe4b729fe276114d",
+                  "file": "terminal.spec.ts",
+                  "line": 499,
+                  "column": 5
+                },
+                {
+                  "title": "should handle very long output without crashing",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-f9c08b9e3478e61d8335",
+                  "file": "terminal.spec.ts",
+                  "line": 515,
+                  "column": 5
+                },
+                {
+                  "title": "should handle network latency gracefully",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-44c8863387ed7af7604c",
+                  "file": "terminal.spec.ts",
+                  "line": 536,
+                  "column": 5
+                }
+              ]
+            },
+            {
+              "title": "Mobile and Responsive Behavior",
+              "file": "terminal.spec.ts",
+              "line": 552,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "should work on mobile viewport",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-ac8e664449983d82a341",
+                  "file": "terminal.spec.ts",
+                  "line": 553,
+                  "column": 5
+                },
+                {
+                  "title": "should handle touch events on mobile",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-0e601fff94ff8d97afaa",
+                  "file": "terminal.spec.ts",
+                  "line": 564,
+                  "column": 5
+                },
+                {
+                  "title": "should work on mobile viewport",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-0cf9d135d0952f8118ec",
+                  "file": "terminal.spec.ts",
+                  "line": 553,
+                  "column": 5
+                },
+                {
+                  "title": "should handle touch events on mobile",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-3602f6a476c77894a7ce",
+                  "file": "terminal.spec.ts",
+                  "line": 564,
+                  "column": 5
+                },
+                {
+                  "title": "should work on mobile viewport",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-c0b1ab59c45ba3bb0a8a",
+                  "file": "terminal.spec.ts",
+                  "line": 553,
+                  "column": 5
+                },
+                {
+                  "title": "should handle touch events on mobile",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-433b317c4f7ea4768e17",
+                  "file": "terminal.spec.ts",
+                  "line": 564,
+                  "column": 5
+                },
+                {
+                  "title": "should work on mobile viewport",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-ea74b2fa5e44d334a382",
+                  "file": "terminal.spec.ts",
+                  "line": 553,
+                  "column": 5
+                },
+                {
+                  "title": "should handle touch events on mobile",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-db0ea3dff3c14ea77632",
+                  "file": "terminal.spec.ts",
+                  "line": 564,
+                  "column": 5
+                },
+                {
+                  "title": "should work on mobile viewport",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-94b72cb326c5dbe42a7e",
+                  "file": "terminal.spec.ts",
+                  "line": 553,
+                  "column": 5
+                },
+                {
+                  "title": "should handle touch events on mobile",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-50bcc5a2f0b1ead74759",
+                  "file": "terminal.spec.ts",
+                  "line": 564,
+                  "column": 5
+                }
+              ]
+            },
+            {
+              "title": "Performance and Resource Usage",
+              "file": "terminal.spec.ts",
+              "line": 578,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "should load page within acceptable time",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-dd5839ea9373b80b143a",
+                  "file": "terminal.spec.ts",
+                  "line": 579,
+                  "column": 5
+                },
+                {
+                  "title": "should not have memory leaks with rapid interactions",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-97c77eaa862fd13aa8f3",
+                  "file": "terminal.spec.ts",
+                  "line": 591,
+                  "column": 5
+                },
+                {
+                  "title": "should load page within acceptable time",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-5c0b545d848c01d7ad80",
+                  "file": "terminal.spec.ts",
+                  "line": 579,
+                  "column": 5
+                },
+                {
+                  "title": "should not have memory leaks with rapid interactions",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "firefox",
+                      "projectName": "firefox",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-8352171288d22f19a140",
+                  "file": "terminal.spec.ts",
+                  "line": 591,
+                  "column": 5
+                },
+                {
+                  "title": "should load page within acceptable time",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-a86b7db25aecbd7bd00e",
+                  "file": "terminal.spec.ts",
+                  "line": 579,
+                  "column": 5
+                },
+                {
+                  "title": "should not have memory leaks with rapid interactions",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "webkit",
+                      "projectName": "webkit",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-b8d45e35b86d1702da79",
+                  "file": "terminal.spec.ts",
+                  "line": 591,
+                  "column": 5
+                },
+                {
+                  "title": "should load page within acceptable time",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-d0bd6daa96bf092529bf",
+                  "file": "terminal.spec.ts",
+                  "line": 579,
+                  "column": 5
+                },
+                {
+                  "title": "should not have memory leaks with rapid interactions",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Chrome",
+                      "projectName": "Mobile Chrome",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-f127ba01f4dca5e79983",
+                  "file": "terminal.spec.ts",
+                  "line": 591,
+                  "column": 5
+                },
+                {
+                  "title": "should load page within acceptable time",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-3949b5307e69410e2358",
+                  "file": "terminal.spec.ts",
+                  "line": 579,
+                  "column": 5
+                },
+                {
+                  "title": "should not have memory leaks with rapid interactions",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "Mobile Safari",
+                      "projectName": "Mobile Safari",
+                      "results": [],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "8f9206fb64e745a9d86f-97d666da023e68133ade",
+                  "file": "terminal.spec.ts",
+                  "line": 591,
+                  "column": 5
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2025-09-29T22:55:00.396Z",
+    "duration": 31.652000000000044,
+    "expected": 0,
+    "skipped": 155,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

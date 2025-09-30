@@ -1,8 +1,10 @@
 // Configuration module
 // Per spec-kit/003-backend-spec.md section 6
 
+pub mod auth;
 pub mod server;
 
+pub use auth::AuthConfig;
 pub use server::{LoggingConfig, SecurityConfig, ServerConfig};
 
 use crate::error::Result;
@@ -17,6 +19,8 @@ pub struct Config {
     pub session: SessionConfig,
     pub security: SecurityConfig,
     pub logging: LoggingConfig,
+    #[serde(default)]
+    pub auth: AuthConfig,
 }
 
 impl Config {
@@ -28,6 +32,7 @@ impl Config {
             session: SessionConfig::default(),
             security: SecurityConfig::default(),
             logging: LoggingConfig::default(),
+            auth: AuthConfig::default(),
         })
     }
 }
@@ -39,6 +44,7 @@ impl Default for Config {
             session: SessionConfig::default(),
             security: SecurityConfig::default(),
             logging: LoggingConfig::default(),
+            auth: AuthConfig::default(),
         }
     }
 }

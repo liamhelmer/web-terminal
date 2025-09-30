@@ -74,10 +74,11 @@ export default defineConfig({
   ],
 
   /* Run your local dev server before starting the tests */
-  // Note: In CI, server is started separately
+  // Note: In CI, server is started separately (backend server on port 8080)
+  // CRITICAL: Single-port architecture - no separate frontend dev server in CI
   webServer: process.env.CI ? undefined : {
     command: 'pnpm run preview',
-    url: 'http://localhost:3000',
+    url: 'http://localhost:8080', // Single-port architecture
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,
   },

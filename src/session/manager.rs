@@ -105,6 +105,15 @@ impl SessionManager {
             .ok_or_else(|| Error::SessionNotFound(session_id.to_string()))
     }
 
+    /// Get the owner of a session
+    /// Returns the user ID that owns the session
+    pub fn get_session_owner(&self, session_id: &SessionId) -> Result<UserId> {
+        self.sessions
+            .get(session_id)
+            .map(|entry| entry.value().user_id.clone())
+            .ok_or_else(|| Error::SessionNotFound(session_id.to_string()))
+    }
+
     /// Update session activity timestamp
     pub async fn touch_session(&self, session_id: &SessionId) -> Result<()> {
         if let Some(mut entry) = self.sessions.get_mut(session_id) {

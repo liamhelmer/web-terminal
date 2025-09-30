@@ -1,0 +1,8 @@
+# Large File Test Fixture
+# This file is used for testing large file uploads
+
+${'Lorem ipsum dolor sit amet, consectetur adipiscing elit. '.repeat(100)}
+
+# File size: Approximately 10KB
+# Purpose: Test chunked file upload functionality
+# Usage: Upload this file via the web-terminal UI

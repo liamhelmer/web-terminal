@@ -11,7 +11,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'happy-dom', // Faster than jsdom
-    setupFiles: [],
+    setupFiles: ['./tests/setup.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html', 'lcov'],

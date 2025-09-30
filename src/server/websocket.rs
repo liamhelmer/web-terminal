@@ -1,7 +1,7 @@
 // WebSocket handler for terminal sessions
 // Per spec-kit/003-backend-spec.md section 1.2
 
-use actix::{Actor, ActorContext, AsyncContext, StreamHandler};
+use actix::{Actor, ActorContext, ActorFutureExt, AsyncContext, StreamHandler, WrapFuture};
 use actix_web_actors::ws;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -10,12 +10,15 @@ use tokio::sync::mpsc;
 use tokio::task::block_in_place;
 use crate::protocol::{ClientMessage, ConnectionStatus, ServerMessage, Signal};
 use crate::pty::PtyManager;
+use crate::server::middleware::auth::UserContext;
+use crate::security::jwt_validator::JwtValidator;
 use crate::session::{SessionId, SessionManager};
 
 /// WebSocket session actor
 ///
 /// Per FR-3.3: Real-time streaming via WebSocket
 /// Per spec-kit/007-websocket-spec.md
+/// Per spec-kit/011-authentication-spec.md: WebSocket authentication
 pub struct WebSocketSession {
     /// Session ID for this WebSocket connection
     session_id: SessionId,
@@ -29,14 +32,21 @@ pub struct WebSocketSession {
     last_heartbeat: Instant,
     /// Output receiver channel
     output_rx: Option<mpsc::UnboundedReceiver<Vec<u8>>>,
+    /// User context from authenticated JWT
+    /// Per spec-kit/011-authentication-spec.md: Authentication required before processing
+    user_context: Option<UserContext>,
+    /// JWT validator for token authentication
+    jwt_validator: Arc<JwtValidator>,
 }
 
 impl WebSocketSession {
     /// Create a new WebSocket session
+    /// Per spec-kit/011-authentication-spec.md: Authentication required
     pub fn new(
         session_id: SessionId,
         session_manager: Arc<SessionManager>,
         pty_manager: PtyManager,
+        jwt_validator: Arc<JwtValidator>,
     ) -> Self {
         Self {
             session_id,
@@ -45,7 +55,75 @@ impl WebSocketSession {
             pty_id: None,
             last_heartbeat: Instant::now(),
             output_rx: None,
+            user_context: None,
+            jwt_validator,
         }
+    }
+
+    /// Authenticate WebSocket connection with JWT token
+    /// Per spec-kit/011-authentication-spec.md: WebSocket authentication flow
+    fn authenticate(&mut self, token: String, ctx: &mut ws::WebsocketContext<Self>) {
+        let validator = self.jwt_validator.clone();
+        let session_id_clone = self.session_id.clone();
+
+        // Spawn async validation task
+        ctx.spawn(
+            async move {
+                validator.validate(&token).await
+            }
+            .into_actor(self)
+            .map(move |result, actor, ctx| {
+                match result {
+                    Ok(validated_token) => {
+                        let user_context = UserContext::from_claims(
+                            validated_token.claims,
+                            validated_token.provider,
+                        );
+                        tracing::info!(
+                            "WebSocket authenticated: user={}, session={}",
+                            user_context.user_id.as_str(),
+                            session_id_clone
+                        );
+
+                        // Send authenticated message
+                        let msg = ServerMessage::Authenticated {
+                            user_id: user_context.user_id.as_str().to_string(),
+                        };
+                        if let Ok(json) = serde_json::to_string(&msg) {
+                            ctx.text(json);
+                        }
+
+                        actor.user_context = Some(user_context);
+                    }
+                    Err(e) => {
+                        tracing::warn!("WebSocket authentication failed: {}", e);
+                        let msg = ServerMessage::Error {
+                            message: "Authentication failed: Invalid or expired token".to_string(),
+                        };
+                        if let Ok(json) = serde_json::to_string(&msg) {
+                            ctx.text(json);
+                        }
+                        ctx.close(Some(ws::CloseCode::Policy.into()));
+                    }
+                }
+            }),
+        );
+    }
+
+    /// Check if WebSocket is authenticated
+    /// Per spec-kit/011-authentication-spec.md: Require authentication before processing
+    fn require_auth(&self, ctx: &mut ws::WebsocketContext<Self>) -> bool {
+        if self.user_context.is_none() {
+            tracing::warn!("Unauthenticated WebSocket message rejected");
+            let msg = ServerMessage::Error {
+                message: "Authentication required. Send authenticate message first.".to_string(),
+            };
+            if let Ok(json) = serde_json::to_string(&msg) {
+                ctx.text(json);
+            }
+            return false;
+        }
+        true
     }
 
     /// Start heartbeat task
@@ -245,13 +323,29 @@ impl StreamHandler<std::result::Result<ws::Message, ws::ProtocolError>> for WebS
             Ok(ws::Message::Text(text)) => {
                 // Parse client message
                 match serde_json::from_str::<ClientMessage>(&text) {
+                    Ok(ClientMessage::Authenticate { token }) => {
+                        // Per spec-kit/011-authentication-spec.md: Process authenticate message
+                        self.authenticate(token, ctx);
+                    }
                     Ok(ClientMessage::Command { data }) => {
+                        // Per spec-kit/011-authentication-spec.md: Require auth before commands
+                        if !self.require_auth(ctx) {
+                            return;
+                        }
                         self.handle_command(data, ctx);
                     }
                     Ok(ClientMessage::Resize { cols, rows }) => {
+                        // Per spec-kit/011-authentication-spec.md: Require auth before resize
+                        if !self.require_auth(ctx) {
+                            return;
+                        }
                         self.handle_resize(cols, rows, ctx);
                     }
                     Ok(ClientMessage::Signal { signal }) => {
+                        // Per spec-kit/011-authentication-spec.md: Require auth before signals
+                        if !self.require_auth(ctx) {
+                            return;
+                        }
                         self.handle_signal(signal, ctx);
                     }
                     Ok(ClientMessage::Ping) => {

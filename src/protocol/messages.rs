@@ -8,6 +8,11 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ClientMessage {
+    /// Authenticate with JWT token
+    /// Per spec-kit/007-websocket-spec.md: WebSocket authentication
+    /// Per spec-kit/011-authentication-spec.md: Authentication flow
+    Authenticate { token: String },
+
     /// Execute a command in the terminal
     /// Per FR-1.1: Command execution
     Command { data: String },
@@ -28,6 +33,11 @@ pub enum ClientMessage {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ServerMessage {
+    /// Authentication successful
+    /// Per spec-kit/007-websocket-spec.md: WebSocket authentication
+    /// Per spec-kit/011-authentication-spec.md: Authentication flow
+    Authenticated { user_id: String },
+
     /// Terminal output data
     /// Per FR-3.3: Real-time streaming
     Output { data: String },

@@ -1,0 +1,43 @@
+# Authorization Permissions Configuration
+# Per spec-kit/011-authentication-spec.md section 5: Authorization Model
+
+# Role-based permissions
+# Each role is mapped to a list of permissions
+role_permissions:
+  # Admin role: full access to all operations
+  admin:
+    - create_session
+    - view_session
+    - send_input
+    - kill_session
+    - list_all_sessions
+    - kill_any_session
+
+  # User role: can manage own sessions
+  user:
+    - create_session
+    - view_session
+    - send_input
+    - kill_session
+
+  # Read-only role: can only view sessions
+  readonly:
+    - view_session
+
+# Ownership rules for resource access
+# These rules apply when checking permissions on owned resources
+ownership_rules:
+  # Users can view their own sessions
+  own_sessions_view: true
+
+  # Users can kill their own sessions
+  own_sessions_kill: true
+
+  # Users can send input to their own sessions
+  own_sessions_input: true
+
+# Default permissions for all authenticated users
+# These permissions are granted regardless of role
+default_permissions:
+  - create_session
+  - view_session

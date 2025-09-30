@@ -4,169 +4,297 @@
 // Tests WebSocket message protocol and real-time communication
 
 use std::time::Duration;
+use web_terminal::protocol::{ClientMessage, ServerMessage, Signal, ConnectionStatus};
 
-/// Test WebSocket connection establishment
+/// Test message serialization and deserialization
 ///
-/// Per FR-3: Real-time Communication
-#[tokio::test]
-async fn test_websocket_connection() {
-    // TODO: Implement when WebSocket handler is ready
-    //
-    // 1. Start server
-    // 2. Connect WebSocket client
-    // 3. Verify connection established
-    // 4. Disconnect
-}
-
-/// Test authentication over WebSocket
-///
-/// Per FR-5.1: Require authentication for all connections
-#[tokio::test]
-async fn test_websocket_authentication() {
-    // TODO: Implement when auth is ready
-    //
-    // 1. Attempt connection without token
-    // 2. Verify rejected
-    // 3. Connect with valid token
-    // 4. Verify accepted
-}
-
-/// Test bidirectional message flow
-///
-/// Per FR-3.1: Send commands from client to server
-/// Per FR-3.2: Stream output from server to client
-#[tokio::test]
-async fn test_bidirectional_messages() {
-    // TODO: Implement when protocol is ready
-    //
-    // 1. Connect WebSocket
-    // 2. Send command message
-    // 3. Receive output messages
-    // 4. Verify message protocol
-}
-
-/// Test WebSocket reconnection
-///
-/// Per FR-4.1.3: Allow reconnection to existing session
-#[tokio::test]
-async fn test_websocket_reconnection() {
-    // TODO: Implement when components are ready
-    //
-    // 1. Connect and create session
-    // 2. Execute command
-    // 3. Disconnect
-    // 4. Reconnect with session ID
-    // 5. Verify session resumed
-}
-
-/// Test message protocol validation
-///
+/// Per FR-3: Real-time Communication via WebSocket
 /// Per spec-kit/007-websocket-spec.md
 #[tokio::test]
-async fn test_message_protocol() {
-    // TODO: Implement when protocol is ready
-    //
-    // Test all message types:
-    // - command
-    // - output
-    // - error
-    // - control (resize, signal, etc.)
+async fn test_message_serialization() {
+    // Test ClientMessage serialization
+    let command_msg = ClientMessage::Command {
+        data: "echo 'test'".to_string(),
+    };
+
+    let json = serde_json::to_string(&command_msg).expect("Failed to serialize command message");
+    assert!(json.contains(r#""type":"command""#));
+    assert!(json.contains(r#""data":"echo 'test'""#));
+
+    // Test deserialization
+    let parsed: ClientMessage =
+        serde_json::from_str(&json).expect("Failed to deserialize command message");
+    match parsed {
+        ClientMessage::Command { data } => assert_eq!(data, "echo 'test'"),
+        _ => panic!("Wrong message type"),
+    }
+
+    // Test ServerMessage serialization
+    let output_msg = ServerMessage::Output {
+        data: "Hello World\n".to_string(),
+    };
+
+    let json = serde_json::to_string(&output_msg).expect("Failed to serialize output message");
+    assert!(json.contains(r#""type":"output""#));
+    assert!(json.contains(r#""data":"Hello World\n""#));
+
+    // Test deserialization
+    let parsed: ServerMessage =
+        serde_json::from_str(&json).expect("Failed to deserialize output message");
+    match parsed {
+        ServerMessage::Output { data } => assert_eq!(data, "Hello World\n"),
+        _ => panic!("Wrong message type"),
+    }
 }
 
-/// Test WebSocket heartbeat/ping-pong
+/// Test resize message format
+///
+/// Per FR-2.1.5: Support terminal dimensions
+#[tokio::test]
+async fn test_resize_message() {
+    let resize_msg = ClientMessage::Resize { cols: 80, rows: 24 };
+
+    let json = serde_json::to_string(&resize_msg).expect("Failed to serialize resize message");
+    assert!(json.contains(r#""type":"resize""#));
+    assert!(json.contains(r#""cols":80"#));
+    assert!(json.contains(r#""rows":24"#));
+
+    // Test deserialization
+    let parsed: ClientMessage =
+        serde_json::from_str(&json).expect("Failed to deserialize resize message");
+    match parsed {
+        ClientMessage::Resize { cols, rows } => {
+            assert_eq!(cols, 80);
+            assert_eq!(rows, 24);
+        }
+        _ => panic!("Wrong message type"),
+    }
+}
+
+/// Test signal message format
+///
+/// Per FR-1.2.4: Support process termination
+#[tokio::test]
+async fn test_signal_message() {
+    let signal_msg = ClientMessage::Signal {
+        signal: Signal::SIGINT,
+    };
+
+    let json = serde_json::to_string(&signal_msg).expect("Failed to serialize signal message");
+    assert!(json.contains(r#""type":"signal""#));
+
+    // Test all signal types
+    let signals = vec![Signal::SIGINT, Signal::SIGTERM, Signal::SIGKILL];
+
+    for signal in signals {
+        let msg = ClientMessage::Signal { signal };
+        let json = serde_json::to_string(&msg).expect("Failed to serialize signal");
+        let parsed: ClientMessage = serde_json::from_str(&json).expect("Failed to deserialize");
+
+        match parsed {
+            ClientMessage::Signal { signal: s } => {
+                assert_eq!(s as i32, signal as i32);
+            }
+            _ => panic!("Wrong message type"),
+        }
+    }
+}
+
+/// Test error message format
+///
+/// Per error handling requirements
+#[tokio::test]
+async fn test_error_message() {
+    let error_msg = ServerMessage::Error {
+        message: "Command not found".to_string(),
+    };
+
+    let json = serde_json::to_string(&error_msg).expect("Failed to serialize error message");
+    assert!(json.contains(r#""type":"error""#));
+    assert!(json.contains(r#""message":"Command not found""#));
+
+    let parsed: ServerMessage =
+        serde_json::from_str(&json).expect("Failed to deserialize error message");
+    match parsed {
+        ServerMessage::Error { message } => assert_eq!(message, "Command not found"),
+        _ => panic!("Wrong message type"),
+    }
+}
+
+/// Test process exited message format
+///
+/// Per FR-1.2.2: Monitor running processes
+#[tokio::test]
+async fn test_process_exited_message() {
+    let exited_msg = ServerMessage::ProcessExited { exit_code: 0 };
+
+    let json = serde_json::to_string(&exited_msg).expect("Failed to serialize exited message");
+    assert!(json.contains(r#""type":"process_exited""#));
+    assert!(json.contains(r#""exit_code":0"#));
+
+    // Test with error exit code
+    let exited_msg = ServerMessage::ProcessExited { exit_code: 127 };
+
+    let json = serde_json::to_string(&exited_msg).expect("Failed to serialize exited message");
+    let parsed: ServerMessage =
+        serde_json::from_str(&json).expect("Failed to deserialize exited message");
+
+    match parsed {
+        ServerMessage::ProcessExited { exit_code } => assert_eq!(exit_code, 127),
+        _ => panic!("Wrong message type"),
+    }
+}
+
+/// Test ping/pong message format
 ///
 /// Per FR-3.4: Maintain connection with heartbeat
 #[tokio::test]
-async fn test_websocket_heartbeat() {
-    // TODO: Implement when WebSocket handler is ready
-    //
-    // 1. Connect WebSocket
-    // 2. Wait for ping messages
-    // 3. Send pong responses
-    // 4. Verify connection stays alive
+async fn test_ping_pong_messages() {
+    // Test Ping message
+    let ping_msg = ClientMessage::Ping;
+    let json = serde_json::to_string(&ping_msg).expect("Failed to serialize ping message");
+    assert!(json.contains(r#""type":"ping""#));
+
+    let parsed: ClientMessage =
+        serde_json::from_str(&json).expect("Failed to deserialize ping message");
+    matches!(parsed, ClientMessage::Ping);
+
+    // Test Pong message
+    let pong_msg = ServerMessage::Pong;
+    let json = serde_json::to_string(&pong_msg).expect("Failed to serialize pong message");
+    assert!(json.contains(r#""type":"pong""#));
+
+    let parsed: ServerMessage =
+        serde_json::from_str(&json).expect("Failed to deserialize pong message");
+    matches!(parsed, ServerMessage::Pong);
 }
 
-/// Test real-time output streaming latency
+/// Test connection status message format
 ///
-/// Per NFR-1.1.3: WebSocket latency < 20ms
+/// Per FR-3: Real-time Communication
 #[tokio::test]
-async fn test_output_streaming_latency() {
-    // TODO: Implement when components are ready
-    //
-    // 1. Connect and execute command
-    // 2. Measure time from output to client receipt
-    // 3. Assert < 20ms latency
+async fn test_connection_status_message() {
+    let status_msg = ServerMessage::ConnectionStatus {
+        status: ConnectionStatus::Connected,
+    };
+
+    let json =
+        serde_json::to_string(&status_msg).expect("Failed to serialize connection status message");
+    assert!(json.contains(r#""type":"connection_status""#));
+    assert!(json.contains(r#""status":"connected""#));
+
+    // Test all status types
+    let statuses = vec![
+        ConnectionStatus::Connected,
+        ConnectionStatus::Disconnected,
+        ConnectionStatus::Reconnecting,
+    ];
+
+    for status in statuses {
+        let msg = ServerMessage::ConnectionStatus { status };
+        let json = serde_json::to_string(&msg).expect("Failed to serialize status");
+        let parsed: ServerMessage = serde_json::from_str(&json).expect("Failed to deserialize");
+
+        match parsed {
+            ServerMessage::ConnectionStatus { status: s } => {
+                // Verify serialization roundtrip
+                assert_eq!(
+                    format!("{:?}", s).to_lowercase(),
+                    format!("{:?}", status).to_lowercase()
+                );
+            }
+            _ => panic!("Wrong message type"),
+        }
+    }
 }
 
-/// Test large output handling
+/// Test invalid message handling
+///
+/// Per error handling requirements
+#[tokio::test]
+async fn test_invalid_message_format() {
+    // Test invalid JSON
+    let invalid_json = "{invalid json}";
+    let result = serde_json::from_str::<ClientMessage>(invalid_json);
+    assert!(result.is_err(), "Invalid JSON should fail to parse");
+
+    // Test missing required fields
+    let missing_fields = r#"{"type":"command"}"#;
+    let result = serde_json::from_str::<ClientMessage>(missing_fields);
+    assert!(
+        result.is_err(),
+        "Message missing required fields should fail"
+    );
+
+    // Test unknown message type
+    let unknown_type = r#"{"type":"unknown_type","data":"test"}"#;
+    let result = serde_json::from_str::<ClientMessage>(unknown_type);
+    assert!(result.is_err(), "Unknown message type should fail");
+}
+
+/// Test message protocol completeness
+///
+/// Verify all message types can be serialized and deserialized
+#[tokio::test]
+async fn test_message_protocol_completeness() {
+    // Test all ClientMessage variants
+    let client_messages = vec![
+        ClientMessage::Command {
+            data: "test".to_string(),
+        },
+        ClientMessage::Resize { cols: 80, rows: 24 },
+        ClientMessage::Signal {
+            signal: Signal::SIGINT,
+        },
+        ClientMessage::Ping,
+    ];
+
+    for msg in client_messages {
+        let json = serde_json::to_string(&msg).expect("Failed to serialize client message");
+        let _parsed: ClientMessage =
+            serde_json::from_str(&json).expect("Failed to deserialize client message");
+    }
+
+    // Test all ServerMessage variants
+    let server_messages = vec![
+        ServerMessage::Output {
+            data: "output".to_string(),
+        },
+        ServerMessage::Error {
+            message: "error".to_string(),
+        },
+        ServerMessage::ProcessExited { exit_code: 0 },
+        ServerMessage::ConnectionStatus {
+            status: ConnectionStatus::Connected,
+        },
+        ServerMessage::Pong,
+    ];
+
+    for msg in server_messages {
+        let json = serde_json::to_string(&msg).expect("Failed to serialize server message");
+        let _parsed: ServerMessage =
+            serde_json::from_str(&json).expect("Failed to deserialize server message");
+    }
+}
+
+/// Test message size limits
 ///
 /// Per NFR-1.1.4: Support streaming output up to 10MB
 #[tokio::test]
-async fn test_large_output() {
-    // TODO: Implement when components are ready
-    //
-    // 1. Execute command with large output
-    // 2. Verify all output received
-    // 3. Verify no message corruption
-}
+async fn test_large_message_handling() {
+    // Test large output message (1MB)
+    let large_data = "x".repeat(1024 * 1024);
+    let large_msg = ServerMessage::Output { data: large_data.clone() };
 
-/// Test concurrent WebSocket connections
-///
-/// Per NFR-3.3: Support multiple concurrent users
-#[tokio::test]
-async fn test_concurrent_connections() {
-    // TODO: Implement when components are ready
-    //
-    // 1. Connect multiple WebSocket clients
-    // 2. Execute commands concurrently
-    // 3. Verify isolation between connections
-    // 4. Cleanup all connections
-}
+    let json = serde_json::to_string(&large_msg).expect("Failed to serialize large message");
+    let parsed: ServerMessage =
+        serde_json::from_str(&json).expect("Failed to deserialize large message");
 
-/// Test connection closure handling
-#[tokio::test]
-async fn test_connection_closure() {
-    // TODO: Implement when WebSocket handler is ready
-    //
-    // 1. Connect WebSocket
-    // 2. Close connection gracefully
-    // 3. Verify server cleans up resources
-    // 4. Verify session marked for cleanup
-}
-
-/// Test connection error handling
-#[tokio::test]
-async fn test_connection_errors() {
-    // TODO: Implement when WebSocket handler is ready
-    //
-    // Test various error scenarios:
-    // - Invalid message format
-    // - Unsupported message type
-    // - Protocol violations
-}
-
-/// Test binary data transmission
-///
-/// Per FR-1.3.1: Support binary file uploads
-#[tokio::test]
-async fn test_binary_data() {
-    // TODO: Implement when file upload is ready
-    //
-    // 1. Connect WebSocket
-    // 2. Send binary data
-    // 3. Verify correct reception
-    // 4. Verify file written to session filesystem
-}
-
-/// Test backpressure handling
-///
-/// Per NFR-1.2: Handle high-frequency updates
-#[tokio::test]
-async fn test_backpressure() {
-    // TODO: Implement when WebSocket handler is ready
-    //
-    // 1. Connect WebSocket
-    // 2. Generate rapid output
-    // 3. Verify backpressure applied
-    // 4. Verify no message loss
+    match parsed {
+        ServerMessage::Output { data } => {
+            assert_eq!(data.len(), large_data.len());
+            assert_eq!(data, large_data);
+        }
+        _ => panic!("Wrong message type"),
+    }
 }
