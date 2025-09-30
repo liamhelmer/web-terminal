@@ -68,6 +68,16 @@ pub enum Error {
     #[error("Serialization error: {0}")]
     Serialization(#[from] serde_json::Error),
 
+    // REST API errors
+    #[error("Not found: {0}")]
+    NotFound(String),
+
+    #[error("Forbidden: {0}")]
+    Forbidden(String),
+
+    #[error("Validation error: {0}")]
+    ValidationError(String),
+
     // Other errors
     #[error("Internal error: {0}")]
     Internal(String),
@@ -99,29 +109,75 @@ impl Error {
     /// Get HTTP status code for this error
     pub fn status_code(&self) -> u16 {
         match self {
-            Error::SessionNotFound(_) => 404,
-            Error::SessionLimitExceeded(_) => 429,
+            Error::SessionNotFound(_) | Error::NotFound(_) | Error::ProcessNotFound(_) => 404,
+            Error::SessionLimitExceeded(_) | Error::ResourceLimitExceeded(_) => 429,
             Error::SessionExpired(_) => 410,
             Error::InvalidCommand(_) | Error::CommandNotAllowed(_) | Error::EmptyCommand => 400,
-            Error::ResourceLimitExceeded(_) => 429,
-            Error::InvalidPath(_) => 400,
+            Error::InvalidPath(_) | Error::Serialization(_) => 400,
             Error::AuthenticationFailed | Error::InvalidToken => 401,
-            Error::Unauthorized => 403,
-            Error::Io(_) | Error::Internal(_) => 500,
-            Error::Serialization(_) => 400,
-            Error::PtyError(_) => 500,
-            Error::ProcessSpawnFailed(_) => 500,
-            Error::ProcessNotFound(_) => 404,
-            Error::WebSocketError(_) => 500,
-            Error::ExecutionFailed(_) => 500,
-            Error::Other(_) => 500,
+            Error::Unauthorized | Error::Forbidden(_) => 403,
+            Error::ValidationError(_) => 422,
+            Error::Io(_) | Error::Internal(_) | Error::PtyError(_) => 500,
+            Error::ProcessSpawnFailed(_) | Error::WebSocketError(_) | Error::ExecutionFailed(_) | Error::Other(_) => 500,
         }
+    }
+
+    /// Session not found error
+    pub fn session_not_found(session_id: impl std::fmt::Display) -> Self {
+        Self::SessionNotFound(format!("{}", session_id))
+    }
+
+    /// Generic not found error
+    pub fn not_found(message: impl Into<String>) -> Self {
+        Self::NotFound(message.into())
+    }
+
+    /// Forbidden/insufficient permissions error
+    pub fn forbidden(message: impl Into<String>) -> Self {
+        Self::Forbidden(message.into())
+    }
+
+    /// Validation error
+    pub fn validation(message: impl Into<String>) -> Self {
+        Self::ValidationError(message.into())
     }
 }
 
 impl From<crate::pty::PtyError> for Error {
     fn from(e: crate::pty::PtyError) -> Self {
         Error::PtyError(e.to_string())
+    }
+}
+
+/// Implement ResponseError for Actix-Web integration
+/// Per spec-kit/006-api-spec.md: Structured error responses
+impl actix_web::ResponseError for Error {
+    fn error_response(&self) -> actix_web::HttpResponse {
+        use crate::handlers::api_types::ErrorResponse;
+
+        let error_response = match self {
+            Error::SessionNotFound(id) => ErrorResponse::session_not_found(id),
+            Error::SessionLimitExceeded(_) => ErrorResponse::rate_limit_exceeded(),
+            Error::SessionExpired(_) => ErrorResponse::session_expired(),
+            Error::InvalidCommand(_) | Error::CommandNotAllowed(_) | Error::EmptyCommand => {
+                ErrorResponse::validation_error(format!("Command error: {}", self))
+            }
+            Error::AuthenticationFailed | Error::InvalidToken => {
+                ErrorResponse::jwt_invalid()
+            }
+            Error::Unauthorized => ErrorResponse::unauthorized_user("unknown", vec![]),
+            Error::NotFound(msg) => ErrorResponse::not_found(msg),
+            Error::Forbidden(msg) => ErrorResponse::forbidden(msg),
+            Error::ValidationError(msg) => ErrorResponse::validation_error(msg),
+            _ => ErrorResponse::internal_error(),
+        };
+
+        actix_web::HttpResponse::build(actix_web::http::StatusCode::from_u16(self.status_code()).unwrap())
+            .json(error_response)
+    }
+
+    fn status_code(&self) -> actix_web::http::StatusCode {
+        actix_web::http::StatusCode::from_u16(Error::status_code(self)).unwrap()
     }
 }
 

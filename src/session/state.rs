@@ -23,6 +23,11 @@ impl SessionId {
         Self(Uuid::new_v4().to_string())
     }
 
+    /// Create a SessionId from a string
+    pub fn new(id: String) -> Self {
+        Self(id)
+    }
+
     /// Get the session ID as a string
     pub fn as_str(&self) -> &str {
         &self.0

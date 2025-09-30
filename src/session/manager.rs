@@ -155,6 +155,15 @@ impl SessionManager {
             .unwrap_or_default()
     }
 
+    /// List all sessions (for admin/API use)
+    /// Returns basic session info without full state
+    pub async fn list_sessions(&self) -> Vec<Arc<Session>> {
+        self.sessions
+            .iter()
+            .map(|entry| entry.value().clone())
+            .collect()
+    }
+
     /// Get total session count
     pub fn session_count(&self) -> usize {
         self.sessions.len()

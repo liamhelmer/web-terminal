@@ -66,6 +66,12 @@ chrono = { version = "0.4", features = ["serde"] }
 # UUID generation for session IDs
 uuid = { version = "1", features = ["v4", "serde"] }
 
+# Input validation (per spec-kit/006-api-spec.md)
+validator = { version = "0.19", features = ["derive"] }
+
+# Lazy initialization
+once_cell = "1.20"
+
 # TLS support (per spec-kit/009-deployment-spec.md - TLS requirements)
 rustls = { version = "0.23", optional = true }
 rustls-pemfile = { version = "2", optional = true }

@@ -1,0 +1,518 @@
+openapi: 3.0.3
+info:
+  title: Web Terminal REST API
+  version: 1.0.0
+  description: |
+    REST API for web-based terminal session management.
+
+    Per docs/spec-kit/006-api-spec.md
+
+    **Authentication:** JWT Bearer tokens required for all endpoints except /health
+
+    **Base URL:** `/api/v1` (relative to server origin)
+  contact:
+    name: API Support
+    email: support@example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: /api/v1
+    description: Production server (relative URL)
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Sessions
+    description: Terminal session management
+  - name: Health
+    description: Health check and monitoring
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check endpoint
+      description: Returns server health status and uptime information
+      operationId: healthCheck
+      security: []  # No authentication required
+      responses:
+        '200':
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: healthy
+                version: 1.0.0
+                uptime_seconds: 3600
+                checks:
+                  sessions: ok
+                  memory: ok
+                  disk: ok
+
+  /sessions:
+    post:
+      tags:
+        - Sessions
+      summary: Create new terminal session
+      description: Creates a new terminal session for the authenticated user
+      operationId: createSession
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSessionRequest'
+            example:
+              initial_dir: /workspace
+              environment:
+                VAR: value
+      responses:
+        '201':
+          description: Session created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateSessionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+
+    get:
+      tags:
+        - Sessions
+      summary: List sessions
+      description: List all sessions for the authenticated user
+      operationId: listSessions
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: List of sessions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListSessionsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /sessions/{id}:
+    get:
+      tags:
+        - Sessions
+      summary: Get session details
+      description: Retrieve details for a specific session
+      operationId: getSession
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: Session details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetSessionResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - Sessions
+      summary: Delete session
+      description: Delete a terminal session
+      operationId: deleteSession
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '204':
+          description: Session deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /sessions/{id}/history:
+    get:
+      tags:
+        - Sessions
+      summary: Get command history
+      description: Retrieve command execution history for a session
+      operationId: getSessionHistory
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 100
+      responses:
+        '200':
+          description: Command history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionHistoryResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token issued by external identity provider (Backstage, Auth0, etc.)
+
+  parameters:
+    SessionId:
+      name: id
+      in: path
+      required: true
+      description: Session identifier
+      schema:
+        type: string
+        example: session-123-abc-456
+
+  schemas:
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - version
+        - uptime_seconds
+        - checks
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+          example: healthy
+        version:
+          type: string
+          example: 1.0.0
+        uptime_seconds:
+          type: integer
+          format: int64
+          example: 3600
+        checks:
+          type: object
+          required:
+            - sessions
+            - memory
+            - disk
+          properties:
+            sessions:
+              type: string
+              enum: [ok, degraded, error]
+            memory:
+              type: string
+              enum: [ok, degraded, error]
+            disk:
+              type: string
+              enum: [ok, degraded, error]
+
+    CreateSessionRequest:
+      type: object
+      properties:
+        initial_dir:
+          type: string
+          maxLength: 4096
+          example: /workspace
+        environment:
+          type: object
+          additionalProperties:
+            type: string
+          example:
+            VAR: value
+
+    CreateSessionResponse:
+      type: object
+      required:
+        - id
+        - user_id
+        - created_at
+        - state
+      properties:
+        id:
+          type: string
+          example: session-123-abc-456
+        user_id:
+          type: string
+          example: user:default/alice
+        created_at:
+          type: string
+          format: date-time
+          example: "2025-09-29T09:00:00Z"
+        state:
+          $ref: '#/components/schemas/SessionState'
+
+    GetSessionResponse:
+      type: object
+      required:
+        - id
+        - user_id
+        - created_at
+        - last_activity
+        - state
+      properties:
+        id:
+          type: string
+        user_id:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        last_activity:
+          type: string
+          format: date-time
+        state:
+          $ref: '#/components/schemas/SessionState'
+
+    ListSessionsResponse:
+      type: object
+      required:
+        - sessions
+        - total
+        - limit
+        - offset
+      properties:
+        sessions:
+          type: array
+          items:
+            $ref: '#/components/schemas/SessionSummary'
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+
+    SessionSummary:
+      type: object
+      required:
+        - id
+        - user_id
+        - created_at
+        - last_activity
+      properties:
+        id:
+          type: string
+        user_id:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        last_activity:
+          type: string
+          format: date-time
+
+    SessionState:
+      type: object
+      required:
+        - working_dir
+        - environment
+        - processes
+      properties:
+        working_dir:
+          type: string
+          example: /workspace
+        environment:
+          type: object
+          additionalProperties:
+            type: string
+        processes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProcessInfo'
+
+    ProcessInfo:
+      type: object
+      required:
+        - pid
+        - command
+        - status
+      properties:
+        pid:
+          type: integer
+          format: int32
+        command:
+          type: string
+        status:
+          type: string
+          enum: [running, stopped, zombie]
+
+    SessionHistoryResponse:
+      type: object
+      required:
+        - history
+      properties:
+        history:
+          type: array
+          items:
+            $ref: '#/components/schemas/HistoryEntry'
+
+    HistoryEntry:
+      type: object
+      required:
+        - timestamp
+        - command
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        command:
+          type: string
+        exit_code:
+          type: integer
+          format: int32
+          nullable: true
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              example: SESSION_NOT_FOUND
+            message:
+              type: string
+              example: Session with ID 'session123' not found
+            details:
+              type: object
+              additionalProperties: true
+        www_authenticate:
+          type: string
+          example: 'Bearer realm="web-terminal", error="invalid_token"'
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: INVALID_REQUEST
+              message: Malformed request body
+
+    Unauthorized:
+      description: Authentication required or JWT invalid
+      headers:
+        WWW-Authenticate:
+          schema:
+            type: string
+          example: 'Bearer realm="web-terminal", error="invalid_token"'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: JWT_EXPIRED
+              message: JWT token has expired
+              details:
+                expired_at: "2025-09-29T08:00:00Z"
+
+    Forbidden:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: UNAUTHORIZED_USER
+              message: User is not authorized to perform this action
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: SESSION_NOT_FOUND
+              message: Session with ID 'session123' not found
+              details:
+                session_id: session123
+
+    ValidationError:
+      description: Input validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: VALIDATION_ERROR
+              message: Invalid input parameters
+
+    RateLimitExceeded:
+      description: Too many requests
+      headers:
+        X-RateLimit-Limit:
+          schema:
+            type: integer
+          example: 100
+        X-RateLimit-Remaining:
+          schema:
+            type: integer
+          example: 0
+        X-RateLimit-Reset:
+          schema:
+            type: integer
+          example: 1633024800
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: RATE_LIMIT_EXCEEDED
+              message: Too many requests. Please try again later.

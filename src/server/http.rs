@@ -8,6 +8,7 @@ use actix_web_actors::ws;
 use actix_files::Files;
 
 use crate::config::Config;
+use crate::handlers;
 use crate::pty::PtyManager;
 use crate::server::middleware::auth::{JwtAuthMiddleware, UserContext};
 use crate::security::jwks_client::JwksClient;
@@ -116,17 +117,20 @@ impl Server {
                 .wrap(tracing_actix_web::TracingLogger::default())
                 .wrap(security_headers.clone())
                 .wrap(cors)
-                // API routes (protected by auth middleware)
+                // API routes (per docs/spec-kit/006-api-spec.md)
                 .service(
                     web::scope("/api/v1")
-                        .route("/health", web::get().to(health_check))
+                        // Public endpoints (no auth required)
+                        .route("/health", web::get().to(handlers::health_check))
+                        // Protected endpoints (require JWT auth)
                         .service(
                             web::scope("")
                                 .wrap(auth_middleware.clone())
-                                .route("/sessions", web::post().to(create_session))
-                                .route("/sessions/{id}", web::get().to(get_session))
-                                .route("/sessions/{id}", web::delete().to(delete_session))
-                                .route("/sessions/{id}/history", web::get().to(get_session_history))
+                                .route("/sessions", web::post().to(handlers::create_session))
+                                .route("/sessions", web::get().to(handlers::list_sessions))
+                                .route("/sessions/{id}", web::get().to(handlers::get_session))
+                                .route("/sessions/{id}", web::delete().to(handlers::delete_session))
+                                .route("/sessions/{id}/history", web::get().to(handlers::get_session_history))
                         )
                 )
                 // WebSocket endpoint (authentication via Authenticate message)
