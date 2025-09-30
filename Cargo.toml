@@ -47,8 +47,8 @@ clap_complete = "4"
 num_cpus = "1"
 
 # Configuration (per spec-kit/003-backend-spec.md)
-config = "0.14"
-toml = "0.8"
+config = "0.15"
+toml = "0.9"
 
 # Error handling (per spec-kit/003-backend-spec.md)
 anyhow = "1"
@@ -69,7 +69,7 @@ uuid = { version = "1", features = ["v4", "serde"] }
 # TLS support (per spec-kit/009-deployment-spec.md - TLS requirements)
 rustls = { version = "0.23", optional = true }
 rustls-pemfile = { version = "2", optional = true }
-actix-web-lab = { version = "0.23", optional = true }  # For TLS acceptor
+actix-web-lab = { version = "0.24", optional = true }  # For TLS acceptor
 
 # Byte buffer management (per spec-kit/003-backend-spec.md - zero-copy optimization)
 bytes = "1"
@@ -81,7 +81,7 @@ portable-pty = "0.9"
 humantime-serde = "1"
 
 # Rate limiting (per spec-kit/002-architecture.md Layer 1 Network Security)
-governor = "0.8"
+governor = "0.10"
 
 [build-dependencies]
 # Build script dependencies
@@ -91,7 +91,7 @@ chrono = "0.4"
 # Testing (per spec-kit/008-testing-spec.md)
 mockall = "0.13"       # Mocking for tests
 tempfile = "3"         # Temporary directories for tests
-criterion = { version = "0.5", features = ["html_reports", "async_tokio"] }  # Benchmarking with async support
+criterion = { version = "0.7", features = ["html_reports", "async_tokio"] }  # Benchmarking with async support
 assert_cmd = "2"       # CLI testing
 predicates = "3"       # Assertions for tests
 futures-util = "0.3"   # For async utilities in benchmarks
