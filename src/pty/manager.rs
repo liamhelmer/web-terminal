@@ -122,7 +122,7 @@ impl PtyManager {
         Ok(PtyWriter::new(handle))
     }
 
-    /// Start streaming output from a PTY to a channel
+    /// Start streaming output from a PTY to a channel (unbounded)
     ///
     /// Per FR-3.3: Real-time streaming
     pub async fn stream_output(
@@ -132,6 +132,35 @@ impl PtyManager {
     ) -> PtyResult<()> {
         let reader = self.create_reader(id, None)?;
         reader.stream_output(tx).await
+    }
+
+    /// Start streaming output from a PTY to a bounded channel
+    ///
+    /// Per FR-3.3: Real-time streaming with backpressure
+    /// Per spec-kit/003-backend-spec.md: PTY manager interface
+    pub async fn stream_output_bounded(
+        &self,
+        id: &str,
+        tx: mpsc::Sender<Vec<u8>>,
+    ) -> PtyResult<()> {
+        let reader = self.create_reader(id, None)?;
+        reader.stream_output_bounded(tx).await
+    }
+
+    /// Send signal to PTY process
+    ///
+    /// Per FR-1.2.4: Support process termination (Ctrl+C / SIGINT)
+    /// Per spec-kit/003-backend-spec.md: Signal handling
+    pub async fn send_signal(&self, id: &str, signal: crate::protocol::Signal) -> PtyResult<()> {
+        use crate::protocol::Signal;
+
+        match signal {
+            Signal::SIGINT | Signal::SIGTERM | Signal::SIGKILL => {
+                // For now, all signals result in kill()
+                // portable-pty doesn't expose direct signal sending
+                self.kill(id).await
+            }
+        }
     }
 
     /// List all active PTY processes

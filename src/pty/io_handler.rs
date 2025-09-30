@@ -24,7 +24,7 @@ impl PtyReader {
         }
     }
 
-    /// Start streaming output to a channel
+    /// Start streaming output to an unbounded channel
     ///
     /// Per NFR-1.1.2: WebSocket message latency < 20ms (p95)
     pub async fn stream_output(self, tx: mpsc::UnboundedSender<Vec<u8>>) -> PtyResult<()> {
@@ -54,6 +54,68 @@ impl PtyReader {
                         let data = buffer[..n].to_vec();
 
                         if tx.send(data).is_err() {
+                            // Channel closed, stop reading
+                            tracing::debug!("PTY {} output channel closed", handle_id);
+                            break;
+                        }
+                    }
+                    Err(e) => {
+                        if e.kind() == std::io::ErrorKind::WouldBlock {
+                            // No data available, continue
+                            std::thread::sleep(std::time::Duration::from_millis(10));
+                            continue;
+                        }
+
+                        tracing::error!("PTY {} read error: {}", handle_id, e);
+                        break;
+                    }
+                }
+            }
+
+            tracing::info!("PTY {} reader stopped", handle_id);
+        });
+
+        Ok(())
+    }
+
+    /// Start streaming output to a bounded channel
+    ///
+    /// Per NFR-1.1.2: WebSocket message latency < 20ms (p95)
+    /// Per spec-kit/003-backend-spec.md: PTY manager interface with backpressure
+    pub async fn stream_output_bounded(self, tx: mpsc::Sender<Vec<u8>>) -> PtyResult<()> {
+        let handle_id = self.handle.id().to_string();
+        let buffer_size = self.buffer_size;
+
+        // Get reader outside of async context
+        let reader = {
+            let inner = self.handle.get_master().await;
+            let mut inner = inner.write().await;
+            inner.get_reader()?
+        };
+
+        // Spawn blocking task for reading (PTY I/O is blocking)
+        tokio::task::spawn_blocking(move || {
+            let mut reader = reader;
+            let mut buffer = vec![0u8; buffer_size];
+
+            // Create runtime handle for async send
+            let runtime = tokio::runtime::Handle::current();
+
+            loop {
+                match reader.read(&mut buffer) {
+                    Ok(0) => {
+                        // EOF - process exited
+                        tracing::debug!("PTY {} reached EOF", handle_id);
+                        break;
+                    }
+                    Ok(n) => {
+                        let data = buffer[..n].to_vec();
+
+                        // Send with backpressure support
+                        let send_result =
+                            runtime.block_on(async { tx.send(data).await });
+
+                        if send_result.is_err() {
                             // Channel closed, stop reading
                             tracing::debug!("PTY {} output channel closed", handle_id);
                             break;

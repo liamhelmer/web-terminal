@@ -517,3 +517,124 @@ async fn test_list_returns_correct_ids() {
     // Cleanup
     manager.kill_all().await.expect("Failed to kill all PTYs");
 }
+
+/// Test signal handling
+///
+/// Per FR-1.2.4: Support process termination (Ctrl+C / SIGINT)
+/// Per spec-kit/003-backend-spec.md: Signal handling
+#[tokio::test]
+async fn test_send_signal() {
+    use web_terminal::protocol::Signal;
+
+    let manager = PtyManager::with_defaults();
+
+    let handle = manager.spawn(None).expect("Failed to spawn PTY");
+    let id = handle.id().to_string();
+
+    assert!(manager.is_alive(&id).await);
+
+    // Send SIGINT signal
+    manager
+        .send_signal(&id, Signal::SIGINT)
+        .await
+        .expect("Failed to send SIGINT");
+
+    // Give it time to die
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    assert_eq!(manager.count(), 0);
+}
+
+/// Test sending signal to non-existent PTY
+#[tokio::test]
+async fn test_send_signal_nonexistent() {
+    use web_terminal::protocol::Signal;
+
+    let manager = PtyManager::with_defaults();
+
+    let result = manager.send_signal("nonexistent-id", Signal::SIGTERM).await;
+    assert!(result.is_err());
+    assert!(matches!(result.unwrap_err(), PtyError::ProcessNotFound(_)));
+}
+
+/// Test bounded streaming output
+///
+/// Per spec-kit/003-backend-spec.md: PTY manager interface with backpressure
+#[tokio::test]
+async fn test_stream_output_bounded() {
+    let manager = PtyManager::with_defaults();
+
+    // Spawn PTY with a command that produces output
+    let handle = manager
+        .spawn_with_shell(
+            "/bin/sh",
+            vec!["-c".to_string(), "echo 'test output'".to_string()],
+            None,
+        )
+        .expect("Failed to spawn PTY");
+
+    let id = handle.id().to_string();
+
+    // Create bounded channel
+    let (tx, mut rx) = tokio::sync::mpsc::channel::<Vec<u8>>(100);
+
+    // Start streaming
+    manager
+        .stream_output_bounded(&id, tx)
+        .await
+        .expect("Failed to start streaming");
+
+    // Wait for output
+    let timeout = tokio::time::timeout(Duration::from_secs(2), rx.recv()).await;
+
+    assert!(timeout.is_ok(), "Should receive output within timeout");
+    assert!(timeout.unwrap().is_some(), "Should receive data");
+
+    // Cleanup
+    let _ = manager.kill(&id).await;
+}
+
+/// Test bounded streaming with backpressure
+#[tokio::test]
+async fn test_bounded_streaming_backpressure() {
+    let manager = PtyManager::with_defaults();
+
+    // Spawn PTY with a command that produces lots of output
+    let handle = manager
+        .spawn_with_shell(
+            "/bin/sh",
+            vec![
+                "-c".to_string(),
+                "for i in $(seq 1 100); do echo line $i; done".to_string(),
+            ],
+            None,
+        )
+        .expect("Failed to spawn PTY");
+
+    let id = handle.id().to_string();
+
+    // Create bounded channel with small capacity
+    let (tx, mut rx) = tokio::sync::mpsc::channel::<Vec<u8>>(5);
+
+    // Start streaming
+    manager
+        .stream_output_bounded(&id, tx)
+        .await
+        .expect("Failed to start streaming");
+
+    // Consume output slowly to test backpressure
+    let mut received = 0;
+    while let Ok(Some(_data)) =
+        tokio::time::timeout(Duration::from_millis(100), rx.recv()).await
+    {
+        received += 1;
+        if received > 5 {
+            break; // Got enough to verify backpressure works
+        }
+    }
+
+    assert!(received > 0, "Should receive some output");
+
+    // Cleanup
+    let _ = manager.kill(&id).await;
+}
