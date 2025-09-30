@@ -52,7 +52,7 @@ toml = "0.8"
 
 # Error handling (per spec-kit/003-backend-spec.md)
 anyhow = "1"
-thiserror = "1"
+thiserror = "2"
 
 # Command execution (per spec-kit/003-backend-spec.md)
 shell-words = "1"

@@ -3872,7 +3872,7 @@ dependencies = [
  "serde_yaml",
  "shell-words",
  "tempfile",
- "thiserror 1.0.69",
+ "thiserror 2.0.17",
  "tokio",
  "toml",
  "tracing",
