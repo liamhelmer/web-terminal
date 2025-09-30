@@ -1,23 +1,34 @@
 // WebSocket handler for terminal sessions
-// Per spec-kit/003-backend-spec.md section 1.2
+// Per spec-kit/007-websocket-spec.md
+// Per spec-kit/011-authentication-spec.md: WebSocket authentication
 
 use actix::{Actor, ActorContext, ActorFutureExt, AsyncContext, StreamHandler, WrapFuture};
 use actix_web_actors::ws;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use tokio::runtime::Handle;
-use tokio::sync::mpsc;
-use tokio::task::block_in_place;
-use crate::protocol::{ClientMessage, ConnectionStatus, ServerMessage, Signal};
+
+use crate::protocol::{error_codes, ClientMessage, ConnectionStatus, ServerMessage, Signal};
 use crate::pty::PtyManager;
 use crate::server::middleware::auth::UserContext;
 use crate::security::jwt_validator::JwtValidator;
 use crate::session::{SessionId, SessionManager};
 
+/// Heartbeat interval: 5 seconds
+/// Per spec-kit/007-websocket-spec.md: Heartbeat mechanism
+const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
+
+/// Client timeout: 30 seconds
+/// Per spec-kit/007-websocket-spec.md: Connection timeout
+const CLIENT_TIMEOUT: Duration = Duration::from_secs(30);
+
+/// Maximum message size: 1 MB
+/// Per spec-kit/007-websocket-spec.md: Message validation
+const MAX_MESSAGE_SIZE: usize = 1024 * 1024;
+
 /// WebSocket session actor
 ///
 /// Per FR-3.3: Real-time streaming via WebSocket
-/// Per spec-kit/007-websocket-spec.md
+/// Per spec-kit/007-websocket-spec.md: WebSocket protocol
 /// Per spec-kit/011-authentication-spec.md: WebSocket authentication
 pub struct WebSocketSession {
     /// Session ID for this WebSocket connection
@@ -30,13 +41,13 @@ pub struct WebSocketSession {
     pty_id: Option<String>,
     /// Last heartbeat timestamp
     last_heartbeat: Instant,
-    /// Output receiver channel
-    output_rx: Option<mpsc::UnboundedReceiver<Vec<u8>>>,
     /// User context from authenticated JWT
     /// Per spec-kit/011-authentication-spec.md: Authentication required before processing
     user_context: Option<UserContext>,
     /// JWT validator for token authentication
     jwt_validator: Arc<JwtValidator>,
+    /// Authentication timeout flag
+    auth_timeout_scheduled: bool,
 }
 
 impl WebSocketSession {
@@ -54,9 +65,9 @@ impl WebSocketSession {
             pty_manager,
             pty_id: None,
             last_heartbeat: Instant::now(),
-            output_rx: None,
             user_context: None,
             jwt_validator,
+            auth_timeout_scheduled: false,
         }
     }
 
@@ -68,45 +79,54 @@ impl WebSocketSession {
 
         // Spawn async validation task
         ctx.spawn(
-            async move {
-                validator.validate(&token).await
-            }
-            .into_actor(self)
-            .map(move |result, actor, ctx| {
-                match result {
-                    Ok(validated_token) => {
-                        let user_context = UserContext::from_claims(
-                            validated_token.claims,
-                            validated_token.provider,
-                        );
-                        tracing::info!(
-                            "WebSocket authenticated: user={}, session={}",
-                            user_context.user_id.as_str(),
-                            session_id_clone
-                        );
+            async move { validator.validate(&token).await }
+                .into_actor(self)
+                .map(move |result, actor, ctx| {
+                    match result {
+                        Ok(validated_token) => {
+                            let user_context = UserContext::from_claims(
+                                validated_token.claims,
+                                validated_token.provider,
+                            );
+                            tracing::info!(
+                                "WebSocket authenticated: user={}, session={}",
+                                user_context.user_id.as_str(),
+                                session_id_clone
+                            );
 
-                        // Send authenticated message
-                        let msg = ServerMessage::Authenticated {
-                            user_id: user_context.user_id.as_str().to_string(),
-                        };
-                        if let Ok(json) = serde_json::to_string(&msg) {
-                            ctx.text(json);
-                        }
+                            // Send authenticated message
+                            let msg = ServerMessage::Authenticated {
+                                user_id: user_context.user_id.as_str().to_string(),
+                                email: user_context.email.clone(),
+                                groups: Some(
+                                    user_context
+                                        .groups
+                                        .iter()
+                                        .map(|g| g.as_str().to_string())
+                                        .collect(),
+                                ),
+                            };
+                            if let Ok(json) = serde_json::to_string(&msg) {
+                                ctx.text(json);
+                            }
 
-                        actor.user_context = Some(user_context);
-                    }
-                    Err(e) => {
-                        tracing::warn!("WebSocket authentication failed: {}", e);
-                        let msg = ServerMessage::Error {
-                            message: "Authentication failed: Invalid or expired token".to_string(),
-                        };
-                        if let Ok(json) = serde_json::to_string(&msg) {
-                            ctx.text(json);
+                            actor.user_context = Some(user_context);
                         }
-                        ctx.close(Some(ws::CloseCode::Policy.into()));
+                        Err(e) => {
+                            tracing::warn!("WebSocket authentication failed: {}", e);
+                            let msg = ServerMessage::Error {
+                                code: error_codes::AUTHENTICATION_FAILED.to_string(),
+                                message: "Authentication failed: Invalid or expired token"
+                                    .to_string(),
+                                details: None,
+                            };
+                            if let Ok(json) = serde_json::to_string(&msg) {
+                                ctx.text(json);
+                            }
+                            ctx.close(Some(ws::CloseCode::Policy.into()));
+                        }
                     }
-                }
-            }),
+                }),
         );
     }
 
@@ -115,23 +135,26 @@ impl WebSocketSession {
     fn require_auth(&self, ctx: &mut ws::WebsocketContext<Self>) -> bool {
         if self.user_context.is_none() {
             tracing::warn!("Unauthenticated WebSocket message rejected");
-            let msg = ServerMessage::Error {
-                message: "Authentication required. Send authenticate message first.".to_string(),
-            };
-            if let Ok(json) = serde_json::to_string(&msg) {
-                ctx.text(json);
-            }
+            self.send_error(
+                error_codes::AUTHENTICATION_REQUIRED,
+                "Authentication required. Send authenticate message first.",
+                ctx,
+            );
             return false;
         }
         true
     }
 
     /// Start heartbeat task
+    /// Per spec-kit/007-websocket-spec.md: Heartbeat mechanism (5s interval, 30s timeout)
     fn start_heartbeat(&self, ctx: &mut ws::WebsocketContext<Self>) {
-        ctx.run_interval(Duration::from_secs(5), |act, ctx| {
+        ctx.run_interval(HEARTBEAT_INTERVAL, |act, ctx| {
             // Check if client timed out
-            if Instant::now().duration_since(act.last_heartbeat) > Duration::from_secs(30) {
-                tracing::warn!("WebSocket heartbeat timeout for session {}", act.session_id);
+            if Instant::now().duration_since(act.last_heartbeat) > CLIENT_TIMEOUT {
+                tracing::warn!(
+                    "WebSocket heartbeat timeout for session {}",
+                    act.session_id
+                );
                 ctx.stop();
                 return;
             }
@@ -141,37 +164,35 @@ impl WebSocketSession {
         });
     }
 
-    /// Initialize PTY for this session
-    async fn initialize_pty(&mut self, _ctx: &mut ws::WebsocketContext<Self>) -> crate::Result<()> {
-        // Spawn PTY process
-        let handle = self.pty_manager.spawn(None)?;
-        let pty_id = handle.id().to_string();
-
-        // Set PTY ID in session
-        if let Ok(session) = self.session_manager.get_session(&self.session_id).await {
-            session.set_pty(pty_id.clone()).await;
+    /// Schedule authentication timeout
+    /// Per spec-kit/007-websocket-spec.md: Must authenticate within 30 seconds
+    fn schedule_auth_timeout(&mut self, ctx: &mut ws::WebsocketContext<Self>) {
+        if !self.auth_timeout_scheduled {
+            self.auth_timeout_scheduled = true;
+            ctx.run_later(CLIENT_TIMEOUT, |act, ctx| {
+                if act.user_context.is_none() {
+                    tracing::warn!(
+                        "WebSocket authentication timeout for session {}",
+                        act.session_id
+                    );
+                    act.send_error(
+                        error_codes::AUTHENTICATION_REQUIRED,
+                        "Authentication timeout. Please authenticate within 30 seconds.",
+                        ctx,
+                    );
+                    ctx.close(Some(ws::CloseCode::Policy.into()));
+                }
+            });
         }
-
-        // Create output channel
-        let (tx, rx) = mpsc::unbounded_channel();
-        self.output_rx = Some(rx);
-
-        // Start streaming output
-        // TODO: Implement streaming without cloning manager
-        // For now, we'll poll output in poll_output method
-
-        self.pty_id = Some(pty_id);
-
-        tracing::info!("Initialized PTY for session {}", self.session_id);
-        Ok(())
     }
 
     /// Handle client command
-    fn handle_command(&mut self, data: String, _ctx: &mut ws::WebsocketContext<Self>) {
+    /// Per spec-kit/007-websocket-spec.md: Command execution
+    fn handle_command(&mut self, data: String, ctx: &mut ws::WebsocketContext<Self>) {
         let pty_id = match &self.pty_id {
             Some(id) => id.clone(),
             None => {
-                self.send_error("PTY not initialized", _ctx);
+                self.send_error(error_codes::INTERNAL_ERROR, "PTY not initialized", ctx);
                 return;
             }
         };
@@ -188,54 +209,142 @@ impl WebSocketSession {
             }
             Err(e) => {
                 tracing::error!("Failed to create PTY writer: {}", e);
+                self.send_error(error_codes::INTERNAL_ERROR, &e.to_string(), ctx);
             }
         }
     }
 
     /// Handle terminal resize
-    fn handle_resize(&mut self, cols: u16, rows: u16, _ctx: &mut ws::WebsocketContext<Self>) {
+    /// Per spec-kit/007-websocket-spec.md: Terminal resize
+    fn handle_resize(&mut self, cols: u16, rows: u16, ctx: &mut ws::WebsocketContext<Self>) {
         let pty_id = match &self.pty_id {
             Some(id) => id.clone(),
             None => {
-                self.send_error("PTY not initialized", _ctx);
+                self.send_error(error_codes::INTERNAL_ERROR, "PTY not initialized", ctx);
                 return;
             }
         };
 
-        // Call resize directly (it's sync in current impl)
-        if let Err(e) = block_in_place(|| {
-            Handle::current().block_on(self.pty_manager.resize(&pty_id, cols, rows))
-        }) {
+        let pty_manager = &self.pty_manager;
+        let result = tokio::task::block_in_place(|| {
+            tokio::runtime::Handle::current().block_on(async {
+                pty_manager.resize(&pty_id, cols, rows).await
+            })
+        });
+
+        if let Err(e) = result {
             tracing::error!("Failed to resize PTY: {}", e);
+            self.send_error(error_codes::INTERNAL_ERROR, &e.to_string(), ctx);
         }
     }
 
     /// Handle signal
-    fn handle_signal(&mut self, signal: Signal, _ctx: &mut ws::WebsocketContext<Self>) {
+    /// Per spec-kit/007-websocket-spec.md: Send signal to process
+    fn handle_signal(&mut self, signal: Signal, ctx: &mut ws::WebsocketContext<Self>) {
         let pty_id = match &self.pty_id {
             Some(id) => id.clone(),
             None => {
-                self.send_error("PTY not initialized", _ctx);
+                self.send_error(error_codes::INTERNAL_ERROR, "PTY not initialized", ctx);
                 return;
             }
         };
 
-        // Handle signal directly
-        match signal {
-            Signal::SIGINT | Signal::SIGTERM | Signal::SIGKILL => {
-                if let Err(e) = block_in_place(|| {
-                    Handle::current().block_on(self.pty_manager.kill(&pty_id))
-                }) {
-                    tracing::error!("Failed to kill PTY: {}", e);
+        // Handle signal directly by killing the PTY
+        let pty_manager = &self.pty_manager;
+        let result = tokio::task::block_in_place(|| {
+            tokio::runtime::Handle::current().block_on(async {
+                match signal {
+                    Signal::SIGINT | Signal::SIGTERM | Signal::SIGKILL => {
+                        pty_manager.kill(&pty_id).await
+                    }
+                }
+            })
+        });
+
+        if let Err(e) = result {
+            tracing::error!("Failed to send signal to PTY: {}", e);
+            self.send_error(error_codes::COMMAND_KILLED, &e.to_string(), ctx);
+        }
+    }
+
+    /// Handle environment variable set
+    /// Per spec-kit/007-websocket-spec.md: Environment variable management
+    fn handle_env_set(&mut self, key: String, value: String, ctx: &mut ws::WebsocketContext<Self>) {
+        let session_manager = self.session_manager.clone();
+        let session_id = self.session_id.clone();
+
+        ctx.spawn(
+            async move {
+                if let Ok(session) = session_manager.get_session(&session_id).await {
+                    session.set_env(key.clone(), value.clone()).await;
+                    Ok((key, value))
+                } else {
+                    Err(crate::error::Error::SessionNotFound(session_id.to_string()))
                 }
             }
+            .into_actor(self)
+            .map(move |result, _actor, ctx| match result {
+                Ok((key, value)) => {
+                    let msg = ServerMessage::EnvUpdated { key, value };
+                    if let Ok(json) = serde_json::to_string(&msg) {
+                        ctx.text(json);
+                    }
+                }
+                Err(e) => {
+                    tracing::error!("Failed to set environment variable: {}", e);
+                }
+            }),
+        );
+    }
+
+    /// Handle change directory
+    /// Per spec-kit/007-websocket-spec.md: Working directory management
+    fn handle_chdir(&mut self, path: String, ctx: &mut ws::WebsocketContext<Self>) {
+        let session_manager = self.session_manager.clone();
+        let session_id = self.session_id.clone();
+
+        ctx.spawn(
+            async move {
+                if let Ok(session) = session_manager.get_session(&session_id).await {
+                    let path_buf = std::path::PathBuf::from(&path);
+                    session.update_working_dir(path_buf.clone()).await?;
+                    Ok(path)
+                } else {
+                    Err(crate::error::Error::SessionNotFound(session_id.to_string()))
+                }
+            }
+            .into_actor(self)
+            .map(move |result, actor, ctx| match result {
+                Ok(path) => {
+                    let msg = ServerMessage::CwdChanged { path };
+                    if let Ok(json) = serde_json::to_string(&msg) {
+                        ctx.text(json);
+                    }
+                }
+                Err(e) => {
+                    tracing::error!("Failed to change directory: {}", e);
+                    actor.send_error(error_codes::PATH_INVALID, &e.to_string(), ctx);
+                }
+            }),
+        );
+    }
+
+    /// Handle echo test message
+    /// Per spec-kit/007-websocket-spec.md: Testing protocol
+    fn handle_echo(&self, data: String, ctx: &mut ws::WebsocketContext<Self>) {
+        let msg = ServerMessage::Echo { data };
+        if let Ok(json) = serde_json::to_string(&msg) {
+            ctx.text(json);
         }
     }
 
     /// Send error message to client
-    fn send_error(&self, message: &str, ctx: &mut ws::WebsocketContext<Self>) {
+    /// Per spec-kit/007-websocket-spec.md: Error responses
+    fn send_error(&self, code: &str, message: &str, ctx: &mut ws::WebsocketContext<Self>) {
         let msg = ServerMessage::Error {
+            code: code.to_string(),
             message: message.to_string(),
+            details: None,
         };
 
         if let Ok(json) = serde_json::to_string(&msg) {
@@ -243,34 +352,28 @@ impl WebSocketSession {
         }
     }
 
-    /// Poll output receiver for PTY output
-    fn poll_output(&mut self, ctx: &mut ws::WebsocketContext<Self>) {
-        if let Some(ref mut rx) = self.output_rx {
-            ctx.run_interval(Duration::from_millis(10), |act, ctx| {
-                if let Some(ref mut rx) = act.output_rx {
-                    // Try to receive up to 100 messages
-                    for _ in 0..100 {
-                        match rx.try_recv() {
-                            Ok(data) => {
-                                // Convert bytes to string
-                                let output = String::from_utf8_lossy(&data).to_string();
-                                let msg = ServerMessage::Output { data: output };
-
-                                if let Ok(json) = serde_json::to_string(&msg) {
-                                    ctx.text(json);
-                                }
-                            }
-                            Err(mpsc::error::TryRecvError::Empty) => break,
-                            Err(mpsc::error::TryRecvError::Disconnected) => {
-                                tracing::info!("PTY output channel disconnected");
-                                ctx.stop();
-                                return;
-                            }
-                        }
-                    }
-                }
-            });
+    /// Send acknowledgment
+    /// Per spec-kit/007-websocket-spec.md: Message acknowledgment
+    fn send_ack(&self, message_id: Option<String>, ctx: &mut ws::WebsocketContext<Self>) {
+        let msg = ServerMessage::Ack { message_id };
+        if let Ok(json) = serde_json::to_string(&msg) {
+            ctx.text(json);
         }
+    }
+
+    /// Validate message size
+    /// Per spec-kit/007-websocket-spec.md: Maximum 1 MB per message
+    fn validate_message_size(&self, size: usize, ctx: &mut ws::WebsocketContext<Self>) -> bool {
+        if size > MAX_MESSAGE_SIZE {
+            tracing::warn!("Message size {} exceeds maximum {}", size, MAX_MESSAGE_SIZE);
+            self.send_error(
+                error_codes::INVALID_MESSAGE,
+                &format!("Message size exceeds maximum of {} bytes", MAX_MESSAGE_SIZE),
+                ctx,
+            );
+            return false;
+        }
+        true
     }
 }
 
@@ -283,18 +386,13 @@ impl Actor for WebSocketSession {
         // Start heartbeat
         self.start_heartbeat(ctx);
 
-        // Initialize PTY
-        let session_id = self.session_id.clone();
-        let fut = async move {
-            // Initialization happens here
-        };
-
-        // Initialize PTY in started method
-        // This will be done via a message or direct initialization
+        // Schedule authentication timeout
+        self.schedule_auth_timeout(ctx);
 
         // Send connection status
         let msg = ServerMessage::ConnectionStatus {
             status: ConnectionStatus::Connected,
+            session_id: Some(self.session_id.to_string()),
         };
 
         if let Ok(json) = serde_json::to_string(&msg) {
@@ -308,60 +406,148 @@ impl Actor for WebSocketSession {
         // Clean up PTY
         if let Some(pty_id) = &self.pty_id {
             let pty_id = pty_id.clone();
-            if let Err(e) = block_in_place(|| {
-                Handle::current().block_on(self.pty_manager.kill(&pty_id))
-            }) {
-                tracing::error!("Failed to kill PTY on session close: {}", e);
-            }
+            let pty_manager = &self.pty_manager;
+            let _ = tokio::task::block_in_place(|| {
+                tokio::runtime::Handle::current().block_on(async {
+                    if let Err(e) = pty_manager.kill(&pty_id).await {
+                        tracing::error!("Failed to kill PTY on session close: {}", e);
+                    }
+                })
+            });
         }
     }
 }
 
 impl StreamHandler<std::result::Result<ws::Message, ws::ProtocolError>> for WebSocketSession {
-    fn handle(&mut self, msg: std::result::Result<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {
+    fn handle(
+        &mut self,
+        msg: std::result::Result<ws::Message, ws::ProtocolError>,
+        ctx: &mut Self::Context,
+    ) {
         match msg {
             Ok(ws::Message::Text(text)) => {
+                // Validate message size
+                if !self.validate_message_size(text.len(), ctx) {
+                    return;
+                }
+
                 // Parse client message
                 match serde_json::from_str::<ClientMessage>(&text) {
-                    Ok(ClientMessage::Authenticate { token }) => {
-                        // Per spec-kit/011-authentication-spec.md: Process authenticate message
-                        self.authenticate(token, ctx);
-                    }
-                    Ok(ClientMessage::Command { data }) => {
-                        // Per spec-kit/011-authentication-spec.md: Require auth before commands
-                        if !self.require_auth(ctx) {
+                    Ok(client_msg) => {
+                        // Validate message
+                        if let Err(e) = client_msg.validate() {
+                            tracing::warn!("Message validation failed: {}", e);
+                            self.send_error(
+                                error_codes::INVALID_MESSAGE,
+                                &format!("Message validation failed: {}", e),
+                                ctx,
+                            );
                             return;
                         }
-                        self.handle_command(data, ctx);
-                    }
-                    Ok(ClientMessage::Resize { cols, rows }) => {
-                        // Per spec-kit/011-authentication-spec.md: Require auth before resize
-                        if !self.require_auth(ctx) {
-                            return;
-                        }
-                        self.handle_resize(cols, rows, ctx);
-                    }
-                    Ok(ClientMessage::Signal { signal }) => {
-                        // Per spec-kit/011-authentication-spec.md: Require auth before signals
-                        if !self.require_auth(ctx) {
-                            return;
-                        }
-                        self.handle_signal(signal, ctx);
-                    }
-                    Ok(ClientMessage::Ping) => {
-                        self.last_heartbeat = Instant::now();
-                        let msg = ServerMessage::Pong;
-                        if let Ok(json) = serde_json::to_string(&msg) {
-                            ctx.text(json);
+
+                        // Handle message
+                        match client_msg {
+                            ClientMessage::Authenticate { token } => {
+                                self.authenticate(token, ctx);
+                            }
+                            ClientMessage::Command { data } => {
+                                if !self.require_auth(ctx) {
+                                    return;
+                                }
+                                self.handle_command(data, ctx);
+                            }
+                            ClientMessage::Resize { cols, rows } => {
+                                if !self.require_auth(ctx) {
+                                    return;
+                                }
+                                self.handle_resize(cols, rows, ctx);
+                            }
+                            ClientMessage::Signal { signal } => {
+                                if !self.require_auth(ctx) {
+                                    return;
+                                }
+                                self.handle_signal(signal, ctx);
+                            }
+                            ClientMessage::EnvSet { key, value } => {
+                                if !self.require_auth(ctx) {
+                                    return;
+                                }
+                                self.handle_env_set(key, value, ctx);
+                            }
+                            ClientMessage::Chdir { path } => {
+                                if !self.require_auth(ctx) {
+                                    return;
+                                }
+                                self.handle_chdir(path, ctx);
+                            }
+                            ClientMessage::FileUploadStart { .. } => {
+                                if !self.require_auth(ctx) {
+                                    return;
+                                }
+                                // TODO: Implement file upload
+                                self.send_error(
+                                    error_codes::INTERNAL_ERROR,
+                                    "File upload not yet implemented",
+                                    ctx,
+                                );
+                            }
+                            ClientMessage::FileUploadComplete { .. } => {
+                                if !self.require_auth(ctx) {
+                                    return;
+                                }
+                                // TODO: Implement file upload
+                            }
+                            ClientMessage::FileDownload { .. } => {
+                                if !self.require_auth(ctx) {
+                                    return;
+                                }
+                                // TODO: Implement file download
+                                self.send_error(
+                                    error_codes::INTERNAL_ERROR,
+                                    "File download not yet implemented",
+                                    ctx,
+                                );
+                            }
+                            ClientMessage::Ping => {
+                                self.last_heartbeat = Instant::now();
+                                let msg = ServerMessage::Pong {
+                                    timestamp: Some(
+                                        std::time::SystemTime::now()
+                                            .duration_since(std::time::UNIX_EPOCH)
+                                            .unwrap()
+                                            .as_millis() as u64,
+                                    ),
+                                    latency_ms: None,
+                                };
+                                if let Ok(json) = serde_json::to_string(&msg) {
+                                    ctx.text(json);
+                                }
+                            }
+                            ClientMessage::Echo { data } => {
+                                self.handle_echo(data, ctx);
+                            }
                         }
                     }
                     Err(e) => {
                         tracing::error!("Failed to parse client message: {}", e);
-                        self.send_error("Invalid message format", ctx);
+                        self.send_error(
+                            error_codes::INVALID_MESSAGE,
+                            &format!("Invalid message format: {}", e),
+                            ctx,
+                        );
                     }
                 }
             }
             Ok(ws::Message::Binary(bin)) => {
+                // Validate message size
+                if !self.validate_message_size(bin.len(), ctx) {
+                    return;
+                }
+
+                if !self.require_auth(ctx) {
+                    return;
+                }
+
                 // Handle binary data (write directly to PTY)
                 if let Some(pty_id) = &self.pty_id {
                     let pty_id = pty_id.clone();
@@ -397,5 +583,25 @@ impl StreamHandler<std::result::Result<ws::Message, ws::ProtocolError>> for WebS
             }
             _ => {}
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::security::jwks_client::JwksClient;
+    use crate::session::manager::SessionConfig;
+
+    #[test]
+    fn test_websocket_session_creation() {
+        let session_id = SessionId::generate();
+        let session_manager = Arc::new(SessionManager::new(SessionConfig::default()));
+        let pty_manager = PtyManager::with_defaults();
+        let config = crate::config::Config::default();
+        let jwks_client = Arc::new(JwksClient::new(config.auth.clone()));
+        let jwt_validator = Arc::new(JwtValidator::new(jwks_client, config.auth));
+
+        let _ws_session =
+            WebSocketSession::new(session_id, session_manager, pty_manager, jwt_validator);
     }
 }

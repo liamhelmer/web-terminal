@@ -5,4 +5,7 @@
 
 pub mod messages;
 
-pub use messages::{ClientMessage, ConnectionStatus, ServerMessage, Signal};
+pub use messages::{
+    error_codes, ClientMessage, ConnectionStatus, FlowControlAction, ServerMessage, Signal,
+    MAX_MESSAGE_SIZE,
+};
