@@ -29,10 +29,10 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout code
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@1482605bfc5719782e1267fd0c0cc350fe7646b8 # stable
+        uses: dtolnay/rust-toolchain@6d653acede28d24f02e3cd41383119e8b1b35921 # stable
         with:
           toolchain: stable
 
@@ -43,7 +43,7 @@ jobs:
           ignore: RUSTSEC-0000-0000 # Add ignored advisories here
 
       - name: Run cargo deny
-        uses: EmbarkStudios/cargo-deny-action@8371184bd11e21dcf8ac82ebf7268 # v1.6.2
+        uses: EmbarkStudios/cargo-deny-action@f2ba7abc2abebaf185c833c3961145a3c275caad # v1.6.2
         with:
           log-level: warn
           command: check
@@ -56,15 +56,15 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout code
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: Setup Node.js
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Install pnpm
-        uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d # v3.0.0
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
         with:
           version: ${{ env.PNPM_VERSION }}
           run_install: false
@@ -84,7 +84,7 @@ jobs:
 
       - name: Upload audit results
         if: failure()
-        uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: frontend-audit-results
           path: frontend/audit-results.json
@@ -97,26 +97,26 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout code
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@1482605bfc5719782e1267fd0c0cc350fe7646b8 # stable
+        uses: dtolnay/rust-toolchain@6d653acede28d24f02e3cd41383119e8b1b35921 # stable
         with:
           toolchain: stable
 
       - name: Rust cache
-        uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2.7.3
+        uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
 
       - name: Build backend
         run: cargo build --release
 
       - name: Setup Node.js
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Install pnpm
-        uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d # v3.0.0
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
         with:
           version: ${{ env.PNPM_VERSION }}
 
@@ -147,7 +147,7 @@ jobs:
           done
 
       - name: Run OWASP ZAP baseline scan
-        uses: zaproxy/action-baseline@v0.10.0
+        uses: zaproxy/action-baseline@v0.14.0
         with:
           target: 'http://localhost:8080'
           rules_file_name: '.zap/rules.tsv'
@@ -162,7 +162,7 @@ jobs:
 
       - name: Upload ZAP report
         if: always()
-        uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: zap-scan-report
           path: report_html.html
@@ -175,10 +175,10 @@ jobs:
     if: github.event_name == 'pull_request'
     steps:
       - name: Checkout code
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: Dependency Review
-        uses: actions/dependency-review-action@733dd5d4a5203f238c33806593ec0f5fc5343d8c # v4.0.0
+        uses: actions/dependency-review-action@56339e523c0409420f6c2c9a2f4292bbb3c07dd3 # v4.0.0
         with:
           fail-on-severity: moderate
           deny-licenses: GPL-3.0, AGPL-3.0
@@ -198,19 +198,19 @@ jobs:
         language: ['javascript']
     steps:
       - name: Checkout code
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@e8893c57a1f3a2b659b6b55564fdfdbbd2982911 # v3.24.0
+        uses: github/codeql-action/init@3599b3baa15b485a2e49ef411a7a4bb2452e7f93 # v3.30.5
         with:
           languages: ${{ matrix.language }}
           queries: security-extended
 
       - name: Autobuild
-        uses: github/codeql-action/autobuild@e8893c57a1f3a2b659b6b55564fdfdbbd2982911 # v3.24.0
+        uses: github/codeql-action/autobuild@3599b3baa15b485a2e49ef411a7a4bb2452e7f93 # v3.30.5
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@e8893c57a1f3a2b659b6b55564fdfdbbd2982911 # v3.24.0
+        uses: github/codeql-action/analyze@3599b3baa15b485a2e49ef411a7a4bb2452e7f93 # v3.30.5
         with:
           category: "/language:${{ matrix.language }}"
 
@@ -221,7 +221,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout code
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: Build Docker image
         run: docker build -t web-terminal:scan .
@@ -235,7 +235,7 @@ jobs:
           severity: 'CRITICAL,HIGH'
 
       - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@e8893c57a1f3a2b659b6b55564fdfdbbd2982911 # v3.24.0
+        uses: github/codeql-action/upload-sarif@3599b3baa15b485a2e49ef411a7a4bb2452e7f93 # v3.30.5
         with:
           sarif_file: 'trivy-results.sarif'
 
