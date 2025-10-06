@@ -24,27 +24,27 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout code
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       # Setup Rust for backend
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@1482605bfc5719782e1267fd0c0cc350fe7646b8 # stable
+        uses: dtolnay/rust-toolchain@6d653acede28d24f02e3cd41383119e8b1b35921 # stable
         with:
           toolchain: stable
 
       - name: Rust cache
-        uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2.7.3
+        uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
         with:
           key: integration-${{ hashFiles('**/Cargo.lock') }}
 
       # Setup Node.js for frontend
       - name: Setup Node.js
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Install pnpm
-        uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d # v3.0.0
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
         with:
           version: ${{ env.PNPM_VERSION }}
           run_install: false
@@ -55,7 +55,7 @@ jobs:
         run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
 
       - name: Setup pnpm cache
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
@@ -128,7 +128,7 @@ jobs:
       # Upload Playwright report on failure
       - name: Upload Playwright report
         if: failure()
-        uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: playwright-integration-report
           path: frontend/playwright-report/
@@ -137,7 +137,7 @@ jobs:
       # Upload server logs on failure
       - name: Upload server logs
         if: failure()
-        uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: server-logs
           path: |
@@ -160,13 +160,13 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout code
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@f95db51fddba0c2d1ec667646a06c2ce06100226 # v3.0.0
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
 
       - name: Build Docker image
-        uses: docker/build-push-action@4a13e500e55cf31b7a5d59a38ab2040ab0f42f56 # v5.1.0
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
         with:
           context: .
           push: false
