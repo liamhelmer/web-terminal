@@ -36,7 +36,7 @@ tracing-actix-web = "0.7"
 dashmap = "6.1"
 
 # Authentication (per spec-kit/003-backend-spec.md and 011-authentication-spec.md)
-jsonwebtoken = "9"
+jsonwebtoken = "10"
 argon2 = "0.5"  # Password hashing
 reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
 base64 = "0.22"
